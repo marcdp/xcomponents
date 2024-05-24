@@ -1,0 +1,66 @@
+
+
+aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
+
+<x-button x-attr:label="state.Word" x-prop:my-color="state.Word">
+    THIS GOES INSIDE BUTTON
+    <div slot="advanced">PEPEEEEEE22</div>
+</x-button>
+
+<hr />
+
+<div x-show="state.Counter > 100">
+    SHOW
+</div>
+
+
+<ul>
+    <li x-for="(item, index) in state.Word">
+        aaa: {{item}} ({{index}})
+    </li>
+</ul>
+
+<ul>
+    <li x-for="(item, index) in state.Items">
+        {{item}} ({{index}})
+    </li>
+</ul>
+
+<ul>
+    <li x-for="(item, index) in 10">
+        {{item}}  ({{index}})
+    </li>
+</ul>
+
+<ul>
+    <li x-for="(key, index, value) in state.Dict">
+        {{key}} ({{index}}) = {{value}}
+    </li>
+</ul>
+
+<ul>
+    <li x-for="(key, index, value) in state.AObject">
+        {{key}} ({{index}}) = {{value}}
+    </li>
+</ul>
+
+a
+{{2}}
+bbbb{{234}}dd
+bbbb{{4}}dd{{24234}}
+
+asd{{state.Counter}}b
+
+
+<div x-if="state.Counter > 10">
+    {{state.Counter}} is greather than 10
+</div>
+<div x-elseif="state.Counter < 10">
+    {{state.Counter}} is less than 10
+</div>
+<div x-else>
+    {{state.Counter}} is equal to 10
+</div>
+
+
+

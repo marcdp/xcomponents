@@ -1,0 +1,172 @@
+﻿@inject Configuration configuration;
+@using System.Text.Json;
+@inject NavigationManager NavManager
+@using XShell.Components.Pages
+
+@if (NavManager.Uri.ToString().IndexOf("skipLayout=true") != -1)
+{
+    <Routes />    
+}
+else
+{
+
+<!DOCTYPE html>
+<html lang="@configuration.Manifest.Lang">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <base href="@configuration.Manifest.Scope" />   
+    <!-- manifest -->
+    <link rel="manifest" href="/manifest.webmanifest">    
+    <!-- icon -->
+    <link rel="shortcut icon" href="/_content/XShell/images/logo.svg" /> 
+    <link rel="icon" href="/_content/XShell/images/logo.svg" type="image/svg+xml">
+    <!-- stylesheet -->
+    <link rel="stylesheet" href="/_content/XShell/css/index.css" type="text/css" media="all" />
+    <!-- importmap -->
+    <script type="importmap">
+        {
+          "imports": {
+            "x-shell": "/_content/XShell/x-shell.js",
+            "x-page": "/_content/XShell/x-page.js",
+            "x-element": "/_content/XShell/x-element.js"
+          }
+        }
+    </script>
+    <!-- xshell -->
+    <script type="module" >
+        import XElement from "x-element";
+        import XShell from "x-shell";
+
+        // Config XShell
+        XShell.config((options) => { 
+            // debug
+            options.debug = true,
+            // manifest
+            options.manifest = "/manifest.webmanifest",
+            // styles
+            options.stylesheets = {
+            }
+            // logo
+            options.logo = { 
+                src: "/_content/XShell/images/logo-black-whitebg.svg",
+                href: "https://www.google.com",
+                target: "_blank",
+                title: "Sample app"
+            }
+            // icons
+            options.icons = {
+                x: "/_content/XShell/x/icons/{name}.svg",
+                x2: "/_content/XShell/x/icons2/{name-unprefixed}.svg"
+            }
+            // user
+            options.user = {
+                username: "lucas",
+                name: "Lucas grijander",
+                roles: ["users"],
+                claims: {
+                    avatar: "https://avatars.githubusercontent.com/u/683624?v=4"
+                }
+            }
+            // menus
+            options.menus = {
+                main: [
+                    { label: "Home", icon:"x-menu", href:"/", description:"Lorem ipsum"},
+                    { label: "Test", icon: "x-circle", href: "/Test/1111/aaaaaa", children: [
+                            { label: "Test 1.1", icon: "x-circle", href: "/Test/1111/aaaaaa", children: [
+                            { label: "Test 1.1.a", icon: "x-circle", href: "/Test/1111/aaaaaa", children:[
+                                { label: "Test 1.1.a.1", icon: "x-circle", href: "/Test/1111/aaaaaa/1111" },
+                                { label: "Test 1.1.a.2", icon: "x-circle", href: "/Test/1111/aaaaaa/2222" },
+                                { label: "Test 1.1.a.3", icon: "x-circle", href: "/Test/1111/aaaaaa/3333" },
+                                { label: "Test 1.1.a.4", icon: "x-circle", href: "/Test/1111/aaaaaa/4444" },
+                            ] },
+                            { label: "Test 1.1.b", icon: "x-circle", href: "/Test/1111/bbbbbb" },
+                            { label: "Test 1.1.c", icon: "x-circle", href: "/Test/1111/ccccc" },
+                            { label: "Test 1.1.d", icon: "x-circle", href: "/Test/1111/ddddddd" },
+                            { label: "Test 1.1.e", icon: "x-circle", href: "/Test/1111/eeeee" },
+                            { label: "-" },
+                            { label: "Database", icon: "x-database", href: "/ssss55555" },
+                            { label: "Dynamic Cms", icon: "x-dcms", href: "/ssss66666" },
+                        ]},
+                        { label: "Test 1.2", icon: "x-circle", href: "/Test/2222" },
+                        { label: "Test 1.3", icon: "x-circle", href: "/Test/3333" },
+                        { label: "Test 1.4", icon: "x-circle", href: "/Test/4444" },
+                    ]},
+                    { label: "marcdp", icon: "x-database", href: "/ssss1", children:[
+                        { label: "core", icon: "x-circle", href: "/ssss1" },
+                        { label: "DB bbb", icon: "x-circle", href: "/ssss1/bbbb" },
+                    ] },
+                    { label: "Dynamic Cms", icon: "x-dcms", href: "/ssss2" },
+                    { label: "About", icon: "x-expand", href: "/ssss3" },
+                    { label: "Dynamic Cms", icon: "x-dcms", href: "/ssss4" },
+                    { label: "-" },
+                    { label: "Database", icon: "x-database", href: "/ssss5" },
+                    { label: "Dynamic Cms", icon: "x-dcms", href: "/ssss6", target:"_blank"},
+                ],
+                shortcuts: [
+                    { label: "Type to search", icon: "x-search", class: "button search", href: "x-shell:search" },
+                    { label: "Lorem ipsum", icon: "x-database", class: "button hide-label", href: "/lucassss" },
+                    { label: "Another one bites the dust", icon: "x2-anchor", class: "button hide-label", href: "/Testsssddd" },
+                    { label: options.user.name, title: options.user.name, img: options.user.claims.avatar, class: "avatar", href: "x-shell:menu-profile" },
+                ],
+                profile: [
+                    { label: "Set status", icon: "x-menu", href: "/ssss7", children:[
+                        { label: "DB aaa", icon: "x-circle", href: "/ssss7" },
+                        { label: "DB bbb", icon: "x-circle", href: "/ssss7/bbbb" },
+                    ] },
+                    { label: "-" },
+                    { label: "asdfadsf", icon: "x-dcms", href: "/ssss8" },
+                    { label: "asdfa", icon: "x-menu", href: "/ssss9" },
+                    { label: "fddsaf", icon: "x-menu", href: "/ssss10" },
+                    { label: "asdfadsfasd", icon: "", href: "/ssss11" },
+                    { label: "-" },
+                    { label: "Sign in", icon: "", href: "/login" },
+                    { label: "-" },
+                    { label: "Sign out", icon: "", href: "/logout" },
+                ],
+                footer: [
+                    { label: options.copyright, icon: "", href: "", class: "anchor" },
+                    { label: "Terms", icon: "", href: "/Terms", class: "anchor" },
+                    { label: "Privacy", icon: "", href: "/Privacy", class: "anchor" },
+                    { label: "Docs", icon: "", href: "/Docs", class: "anchor" },
+                    { label: "Contact us", icon: "", href: "/ContactUs", class: "anchor" },
+                    { label: "Manage cookies", icon: "", href: "/Cookies", class: "anchor" },
+                ],
+            }
+            // XElement
+            XElement.config((options) => {
+                options.debug = true;
+                options.selector = "BODY";
+                options.urls = {
+                    x: "/_content/XShell/x/{name}.x",
+                }
+                options.preload = []
+            });
+        });
+
+        // Start XShell
+        XShell.start();
+    </script>
+
+    <!-- HeadOutlet -->
+    <HeadOutlet />
+</head>
+<body>
+    
+    <!-- Routes -->
+    <x-shell>        
+        <template>
+                <Routes />
+        </template>
+    </x-shell>
+    
+    <!-- blazor script -->
+    <!--
+    <script src="_framework/blazor.web.js"></script>
+    -->
+
+        <MyFirstComponent></MyFirstComponent>
+
+</body>
+</html>
+}

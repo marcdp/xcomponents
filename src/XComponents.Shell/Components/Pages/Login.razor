@@ -1,0 +1,27 @@
+﻿@page "/Login"
+@inherits XPage
+
+<script type="module">
+    import XPage from "x-page";
+    
+    export default XPage.define('page-login', class extends XPage { 
+
+        constructor() {
+            super();
+            debugger;
+            this.state = {
+                a:1,
+                b:2
+            }
+        }
+    })
+</script>
+
+<template>
+    this is a page <span class="marcus">LOGIN</span>: {{state.a}}
+</template>
+
+
+
+
+

@@ -1,0 +1,99 @@
+
+/*! normalize.css v8.0.1 | MIT License | github.com/necolas/normalize.css */
+button,hr,input{overflow:visible}progress,sub,sup{vertical-align:baseline}[type=checkbox],[type=radio],legend{box-sizing:border-box;padding:0}html{line-height:1.15;-webkit-text-size-adjust:100%}body{margin:0}details,main{display:block}h1{font-size:2em;margin:.67em 0}hr{box-sizing:content-box;height:0}code,kbd,pre,samp{font-family:monospace,monospace;font-size:1em}a{background-color:transparent}abbr[title]{border-bottom:none;text-decoration:underline;text-decoration:underline dotted}b,strong{font-weight:bolder}small{font-size:80%}sub,sup{font-size:75%;line-height:0;position:relative}sub{bottom:-.25em}sup{top:-.5em}img{border-style:none}button,input,optgroup,select,textarea{font-family:inherit;font-size:100%;line-height:1.15;margin:0}button,select{text-transform:none}[type=button],[type=reset],[type=submit],button{-webkit-appearance:button}[type=button]::-moz-focus-inner,[type=reset]::-moz-focus-inner,[type=submit]::-moz-focus-inner,button::-moz-focus-inner{border-style:none;padding:0}[type=button]:-moz-focusring,[type=reset]:-moz-focusring,[type=submit]:-moz-focusring,button:-moz-focusring{outline:ButtonText dotted 1px}fieldset{padding:.35em .75em .625em}legend{color:inherit;display:table;max-width:100%;white-space:normal}textarea{overflow:auto}[type=number]::-webkit-inner-spin-button,[type=number]::-webkit-outer-spin-button{height:auto}[type=search]{-webkit-appearance:textfield;outline-offset:-2px}[type=search]::-webkit-search-decoration{-webkit-appearance:none}::-webkit-file-upload-button{-webkit-appearance:button;font:inherit}summary{display:list-item}[hidden],template{display:none}
+html {font-size:14px; margin:0; padding:0; box-sizing:border-box}*,*:before,*:after{box-sizing:border-box}
+
+/* variables */
+:root {
+    --color-main:#1974CB;
+    --color-main-light:#3D89D1;
+    --color-main-dark:#085CAE;    
+    --color-main-x-dark:#104A85;    
+
+    --color-secondary:#F0506E;
+    --color-secondary-dark:#D0304E;
+    --color-secondary-x-dark:#C0203E;
+    
+    --color-bg:white;
+    --color-bg-dark:#F9F9F9;
+    --color-bg-x-dark:#F0F0F0;
+    --color-bg-xx-dark:#E0E0E0;
+
+    --color-light:#F5F6F7;
+    --color-light-2:#E5E5E5;
+    --color-light-3:#F9F9F9;
+    
+    --color-border:#D0D7DE;
+
+    --color-text:#212121;
+    --color-text-gray:#6B6F76;
+    --color-text-x-gray:#ABAFB6;
+
+
+    --transition-all:all .2s;
+
+    --box-shadow: 0px 2px 1px -1px rgba(0,0,0,0.2), 0px 1px 1px 0px rgba(0,0,0,0.14), 0px 1px 3px 0px rgba(0,0,0,0.12);
+    --border-radius: .2em;
+
+    /* text */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+    /*--font-size-xx-big:1.5rem;*/  /* 20px */
+    /*--font-size-x-big:1.25rem;*/  /* 20px */
+    /*--font-size-big:1rem;*/       /* 16em */
+    /*--font-size-normal:.875rem;*/ /* 14px */
+    --text-small:.8575rem;   /* 12px */
+
+    --text-default: #1f2328;
+    --text-light: #757D86;
+
+    /* input */
+    --input-font-size:.8rem;
+    --input-border:.1rem #CECECE solid;
+    --input-border-focus:.08rem #7AACFE solid;
+    --input-box-shadow-focus:0 0 0 .1em #7AACFE;
+    --input-box-shadow-focus-error:0 0 0 .1em var(--color-secondary);
+
+    /* menuitem */
+    --menuitem-border:.08em #D0D7DE solid;  
+    --menuitem-background: #F6F8FA;
+    --menuitem-background-hover: #EFF1F4;
+    --menuitem-background-active: #ECEFF2;
+    --menuitem-background-selected: #F6F7F8;
+    --menuitem-border-radius: .5em;
+    --menuitem-color: #1f2328;
+    --menuitem-color-selected:#1f2328;
+    --menuitem-font-weight-selected:500;
+
+    /* input */
+    --input-border:.1em #CECECE solid;
+    --input-padding:.5em;
+
+    /* hr */
+    --hr-border:.08em #DEE3E8 solid;
+ 
+    /* panel */
+    --panel-border:.1em #D0D7DE solid;
+
+    /* popup */
+    --popup-background: white;
+    --popup-border: none;
+    --popup-border-radius:1em;
+    --popup-shadow: 0px 0px 0px 1px #d0d7de80, 0px 6px 12px -3px #424a530a, 0px 6px 18px 0px #424a531f;
+    --popup-separator-border: .08em #DEE3E8 solid;
+
+}  
+
+
+
+
+/* general */
+body { 
+    font-family: var(--font-family);
+    margin: 0;
+    padding: 0;
+}
+*:not(:defined) {
+    display:none;
+}  
+
+.marcus {color:red;}

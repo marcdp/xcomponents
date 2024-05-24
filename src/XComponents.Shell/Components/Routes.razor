@@ -1,0 +1,16 @@
+﻿@inject Configuration config;
+
+<Router AppAssembly="typeof(Configuration).Assembly" >
+
+    <Found Context="routeData">
+        <RouteView RouteData="routeData" DefaultLayout="typeof(Layout.MainLayout)" /> 
+        <FocusOnNavigate RouteData="routeData" Selector="h1" />
+    </Found>
+    <NotFound>
+        <LayoutView Layout="@typeof(Layout.MainLayout)">
+            <p>Handled 404 page</p>
+        </LayoutView>
+    </NotFound>
+    
+</Router>
+ 

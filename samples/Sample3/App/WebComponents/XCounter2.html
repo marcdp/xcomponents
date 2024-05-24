@@ -1,0 +1,42 @@
+
+<script type="module">
+    import XWebComponent from "x-web-component";
+
+    XWebComponent.define("x-counter-2", class extends XWebComponent {
+
+        static observedAttributes = ["value"];
+
+        constructor() {
+            super({
+                Value: 0
+            });
+        }
+        connectedCallback() {
+            super.connectedCallback();
+        }
+        decrement() {
+            this.state.Value--;
+        }
+        increment() {
+            this.state.Value++;
+        }
+    });
+</script>
+
+<button x-on:click="decrement">Dec</button>
+value: {{state.Value}}.
+<button x-on:click="increment">Inc</button>
+<ul>
+    <li x-for="item in state.Items">value is: {{item}}.</li>
+</ul>
+<hr />
+<div x-if="state.Value > 125">
+    is greather than X
+</div>
+<div x-elseif="state.Value < 125">
+    is LESS than X
+</div>
+<div x-else>
+    is X !!!!!!!!!!!!!
+</div>
+
