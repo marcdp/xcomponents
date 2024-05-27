@@ -20,17 +20,13 @@ namespace XComponents.SourceGenerator {
             public string Extends { get; set; } = "";
             public bool IsPage { get; set; } = false;
             public bool IsWebComponent { get; set; } = false;
-
             public string Template { get; set; } = "";
             public string TemplatePath { get; set; } = "";
             public string TemplateEngine { get; set; } = "x";
-
             public string ComponentName { get; set; } = "";
             public string? LayoutName { get; set; }
-
             public StateProperty[] Properties { get; set; } = [];
-            public RpcMethod[] RpcMethods { get; set; } = [];
-            
+            public RpcMethod[] RpcMethods { get; set; } = [];            
         }
         public class StateProperty {
             public string Name { get; set; } = "";
@@ -52,21 +48,25 @@ namespace XComponents.SourceGenerator {
             public string Type { get; set; } = "";
             public RpcMethodParam[] Params { get; set; } = []; 
         }
-        public class Diagnostics(Action<DiagnosticDescriptor, string , object[]> handler) {
-            public void Report(DiagnosticDescriptor description, string location, object[] arguments) {
-                int k = 13;
+        public class Diagnostics(GeneratorExecutionContext context) {
+            public void Report(DiagnosticDescriptor descriptor, string templatePath, int line, int column, int position, string message) {
+                var location = Location.Create(templatePath, new TextSpan(position, 1), new LinePositionSpan(new LinePosition(line, column), new LinePosition(line, column + 1)));
+                context.ReportDiagnostic(Diagnostic.Create(descriptor, location, message));
             }
-            public void Report(DiagnosticDescriptor description, HtmlNode node, string templatePath, object[] arguments) {
-                int k = 13;
+            public void Report(DiagnosticDescriptor descriptor, HtmlNode node, string templatePath, string message) {
+                var line = node.Line - 1;
+                var column = node.LinePosition;
+                var position = node.StreamPosition;
+                var location = Location.Create(templatePath, new TextSpan(position, 1), new LinePositionSpan(new LinePosition(line, column), new LinePosition(line, column + 1)));
+                context.ReportDiagnostic(Diagnostic.Create(descriptor, location, message));
             }
-            //public void ReportError(GeneratorExecutionContext context, HtmlNode node, string templatePath, DiagnosticDescriptor diagnosticDescriptor, string message) {
-            //    var line = node.Line - 1;
-            //    var column = node.LinePosition;
-            //    var position = node.StreamPosition;
-            //    var location = Location.Create(templatePath, new TextSpan(position, 1), new LinePositionSpan(new LinePosition(line, column), new LinePosition(line, column + 1)));
-            //    context.ReportDiagnostic(Diagnostic.Create(diagnosticDescriptor, location, templatePath, message));
-
-            //}
+            public void Report(DiagnosticDescriptor descriptor, HtmlAttribute attribute, string templatePath, string message) {
+                var line = attribute.Line - 1;
+                var column = attribute.LinePosition;
+                var position = attribute.StreamPosition;
+                var location = Location.Create(templatePath, new TextSpan(position, 1), new LinePositionSpan(new LinePosition(line, column), new LinePosition(line, column + 1)));
+                context.ReportDiagnostic(Diagnostic.Create(descriptor, location, message));
+            }
         }
 
 
@@ -79,7 +79,7 @@ namespace XComponents.SourceGenerator {
             document.LoadHtml(html);
             document.ParseErrors.ToList().ForEach(error => {
                 var (line, column) = Utils.GetTextPosition(html, error.Line, error.LinePosition, 0);
-                diagnostics.Report(DiagnosticDescriptors.XC1001__HtmlParseError, definition.TypePath, new object[] { error.Reason, line, column });
+                diagnostics.Report(DiagnosticDescriptors.XC1001__HtmlParseError, definition.TemplatePath, line, column, error.StreamPosition, error.Reason);
             });
             var slots = document.DocumentNode.SelectNodes("//slot")?.ToList().Select(x => x.GetAttributeValue("name", "")).ToList();
             // Create code
@@ -91,6 +91,7 @@ namespace XComponents.SourceGenerator {
             code.AppendLine();
             code.AppendLine($"    public partial class {definition.Name} {definition.Extends} {{");
             code.AppendLine($"        #nullable enable");
+            code.AppendLine($"        #pragma warning disable");
             code.AppendLine();
             // State
             code.AppendLine($"        // Inner class");
@@ -252,22 +253,23 @@ namespace XComponents.SourceGenerator {
                 code.AppendLine($"            await layout.RenderAsync(\"\", context);");
                 code.AppendLine($"        }}");
             }
-            // RenderJS
-            HtmlNode? script = null;
+            // RenderClient
             if (definition.IsWebComponent) {
-                script = document.DocumentNode.SelectSingleNode("script[@type='module']");
-                document.DocumentNode.ChildNodes.Remove(script);
+                HtmlNode? script = document.DocumentNode.SelectSingleNode("script[@type='module']");
                 code.AppendLine($"        public override string GetWebComponentJavaScript() {{");
                 if (script != null) {
-                    var js = script.InnerHtml;
-                    js = (new RenderFunctionXWebComponent()).CreateRenderFunction(definition, diagnostics, js, document.DocumentNode.InnerHtml);
+                    var js = (new RenderFunctionXClient()).CreateRenderFunction(definition, diagnostics, script.InnerHtml, document);
                     code.AppendLine($"            return ");
                     code.AppendLine($"\"\"\"");
                     code.AppendLine(js.ToString());
                     code.AppendLine($"\"\"\";");
-                    //code.AppendLine($"            return \"{js.Replace("\"", "\\\"").Replace("\t", "\\t").Replace("\r", "\\r").Replace("\n","\\n")}\";");
                 }
                 code.AppendLine($"        }}");
+            }
+            // RenderServer
+            if (definition.IsWebComponent) {
+                var cs = (new RenderFunctionXServer()).CreateRenderFunction(definition, diagnostics, document);
+                code.AppendLine(cs);
             }
             // Renderer
             code.AppendLine($"        #pragma warning disable");
@@ -277,7 +279,8 @@ namespace XComponents.SourceGenerator {
             code.AppendLine($"            internal async Task RenderAsync({definition.Name} __component, string __slot, State state, XContext __context) {{");
             if (definition.IsWebComponent) {
                 //render XWebComponent
-                //var script = document.DocumentNode.SelectSingleNode("script[@type='module']");                
+                var script = document.DocumentNode.SelectSingleNode("script[@type='module']");                
+                document.DocumentNode.ChildNodes.Remove(script);
                 code.AppendLine($"                var id = __context.GetFreeElementId();");
                 code.AppendLine($"                __context.Write(\"<{definition.ComponentName} x-id=\\\"\" + id + \"\\\"\");");
                 code.AppendLine($"                foreach(var attribute in __component.Attributes) __context.WriteHtmlAttribute(attribute.Key, attribute.Value);");

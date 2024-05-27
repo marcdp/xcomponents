@@ -1,5 +1,6 @@
 
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 
@@ -38,7 +39,7 @@ namespace XComponents.Middlewares {
                 await next(httpContext);
                 return;
             }
-            
+
             // OnInit
             page.OnInit(context);
             

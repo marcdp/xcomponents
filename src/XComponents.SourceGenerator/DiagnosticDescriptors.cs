@@ -34,6 +34,14 @@ namespace XComponents.SourceGenerator {
             defaultSeverity: DiagnosticSeverity.Error,
             isEnabledByDefault: true
         );
+        public static readonly DiagnosticDescriptor XC1004__HtmlInvalidAttribute = new DiagnosticDescriptor(
+            id: "XC1004",
+            title: "HTML invalid attribute",
+            messageFormat: "HTML invalid attribute: {0}",
+            category: "Usage",
+            defaultSeverity: DiagnosticSeverity.Error,
+            isEnabledByDefault: true
+        );
 
     }
 

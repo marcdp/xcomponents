@@ -20,16 +20,32 @@
         increment() {
             this.state.Value++;
         }
+        test(event, item, i) {
+            debugger;
+        }
     });
 </script>
 
+
+<i>hello<b></b>world</i>
+<li x-for="itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm in state.Items">
+</li>
+
 <button x-on:click="decrement">Dec</button>
-value: {{state.Value}}.
+    value: {{state.Value}}.{{state.Value}}..
 <button x-on:click="increment">Inc</button>
 <ul>
-    <li x-for="item in state.Items">value is: {{item}}.</li>
+    <li x-for="itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm in state.Items">
+        value is:
+        <a @click="test">{{itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm}}</a>.
+        <span x-for="i in 10">
+            <a @click="test">{{i}}</a>.
+        </span>
+        <button x-on:click="decrement">Dec</button>
+    </li>
 </ul>
 <hr />
+
 <div x-if="state.Value > 125">
     is greather than X
 </div>
@@ -40,3 +56,10 @@ value: {{state.Value}}.
     is X !!!!!!!!!!!!!
 </div>
 
+
+
+
+
+<div x-if="state.Value > 11">
+    xxxxxxxxxxxxxxxxxxxxxxxx
+</div>                

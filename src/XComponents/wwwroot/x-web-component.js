@@ -37,9 +37,13 @@ const config = {
 
 
 /*
- * Render Utils
+ * Context
  */
-const renderUtils = new class {
+class Context {
+    renderCount = 0;
+    constructor(renderCount) {
+        this.renderCount = renderCount;
+    }
     toArray = (value) => {
         if (Array.isArray(value)) return value;
         if (typeof (value) == "number") return Array.from({ length: value }, (v, i) => i + 1);
@@ -184,7 +188,7 @@ const componentLoader = new class {
             if (j != -1) {
                 js = js.substring(0, j + 1) + "\n\n" +
                     "        //auto generated\n" +
-                    "        render(state, renderUtils, renderCount) {;\n" +
+                    "        render(state, __context, renderCount) {;\n" +
                     "            " + componentLoader.compileTemplateToJs(name, url, renderTemplate).replaceAll("\n","\n            ") + "\n" +
                     "        }\n" +
                     js.substring(j + 1)
@@ -229,7 +233,7 @@ const componentLoader = new class {
     }
     compileTemplateToFunction = (name, url, html) => {
         var code = this.compileTemplateToJs(name, url, html);
-        return new Function("state", "renderUtils", "renderCount", code);
+        return new Function("state", "__context", "renderCount", code);
     }
     //compile DOM node recursive into a function that creates virtual dom objects
     _compileTemplateToJsRecursive(name, node, index, js, level) {
@@ -289,13 +293,13 @@ const componentLoader = new class {
                     //...<span x-attr="state.value"></span>...
                     //...<span :="state.value"></span>...
                     var attrValue = attr.value;
-                    attrs.push("...renderUtils.toObject(" + attrValue + ")");
+                    attrs.push("...__context.toObject(" + attrValue + ")");
                 } else if (attr.name.startsWith("x-attr:") || attr.name.startsWith(":")) {
                     //...<span x-attr:title="state.value"></span>...
                     var attrName = (attr.name.startsWith(":") ? attr.name.substring(1) : attr.name.substr(attr.name.indexOf(':') + 1));
                     var attrValue = attr.value;
                     if (attrName.startsWith("[") && attrName.endsWith("]")) {
-                        attrs.push("...renderUtils.toDynamicArgument(" + attrName.substring(1, attrName.length - 1) + ", " + attrValue + ")");
+                        attrs.push("...__context.toDynamicArgument(" + attrName.substring(1, attrName.length - 1) + ", " + attrValue + ")");
                     } else {
                         attrs.push('"' + attrName + '":' + attrValue);
                     }
@@ -310,7 +314,7 @@ const componentLoader = new class {
                     var propName = this._kebabToCamel((attr.name.startsWith(".") ? attr.name.substring(1) : attr.name.substr(attr.name.indexOf(':') + 1)));
                     var propValue = attr.value;
                     if (propName.startsWith("[") && propName.endsWith("]")) {
-                        props.push("...renderUtils.toDynamicProperty(" + propName.substring(1, propName.length - 1) + ", " + propValue + ")");
+                        props.push("...__context.toDynamicProperty(" + propName.substring(1, propName.length - 1) + ", " + propValue + ")");
                     } else {
                         props.push(propName + ":" + propValue);
                     }
@@ -356,7 +360,7 @@ const componentLoader = new class {
                         indexName = arr[1].trim();
                     }
                     let listName = parts[1].trim();
-                    jsLine[0] = indent + "...(renderUtils.toArray(" + listName + ").map((" + itemName + ", " + indexName + ") => ";
+                    jsLine[0] = indent + "...(__context.toArray(" + listName + ").map((" + itemName + ", " + indexName + ") => ";
                     jsPostLine.push(")),");
                     options.push("\"key\":" + itemName + "." + keyName);
                     //creates a comment end node that indicates the end of the for loop
@@ -583,8 +587,11 @@ class XWebComponent extends HTMLElement {
 
 
     // private methods
-    _createVDOM() {
-        return this.render(this._state, renderUtils, this._renderCount++);        
+    _handleEvent(event, handlerName, handlerArgs = []) {
+        logger.log(`Dispatching event to ${handlerName} ...`);
+        var handler = this[handlerName];
+        var result = handler.call(this, event, ...handlerArgs);
+        return result;
     }
     _renderDom() {
         //count
@@ -595,12 +602,12 @@ class XWebComponent extends HTMLElement {
             this._renderDomTimeoutId = 0;
         };
         //render
-        var vdom = this._createVDOM();
+        var vdom = this.render(this._state, new Context(this._renderCount++));
         //vdom to dom
         if (this._vdom == null) {
             var index = 0;
             for (var vNode of vdom) {
-                while (index < vNode.options.index) {
+                while (index < vNode.index) {
                     var comment = document.createComment("");
                     this._shadowRoot.appendChild(comment);
                     index++;
@@ -674,7 +681,7 @@ class XWebComponent extends HTMLElement {
                         if (options.right && event.key != "ArrowRight") return false;
                     }
                     //invoke
-                    var result = eventHandler.call(this, event, ...args);
+                    var result = this._handleEvent(event, ...eventHandler);
                     //stop, prevent
                     if (options.stop) event.stopPropagation();
                     if (options.prevent) event.preventDefault();
@@ -685,7 +692,7 @@ class XWebComponent extends HTMLElement {
             if (Array.isArray(vNode.children)) {
                 var index = 0;
                 for (let child of vNode.children) {
-                    while (index < child.options.index) {
+                    while (index < child.index) {
                         var comment = document.createComment("");
                         el.appendChild(comment);
                         index++;
@@ -695,13 +702,13 @@ class XWebComponent extends HTMLElement {
                     index++;
                 }
             } else if (typeof (vNode.children) == "string") {
-                if (vNode.options.format == 'html') {
+                if (vNode.format == 'html') {
                     el.innerHTML = vNode.children;
                 } else {
                     el.textContent = vNode.children;
                 }
             }
-            //if (config.debug) el.setAttribute("x-index", vNode.options.index);
+            //if (config.debug) el.setAttribute("x-index", vNode.index);
             return el;
         }
     }
@@ -722,17 +729,17 @@ class XWebComponent extends HTMLElement {
             } else if (vNodeNew == null) {
                 //remove
                 parent.removeChild(parent.lastChild);
-            } else if (vNodeOld.options.index < vNodeNew.options.index) {
+            } else if (vNodeOld.index < vNodeNew.index) {
                 //remove old node
                 let comment = document.createComment("");
-                parent.replaceChild(comment, parent.childNodes[vNodeOld.options.index])
+                parent.replaceChild(comment, parent.childNodes[vNodeOld.index])
                 inew--;
-            } else if (vNodeOld.options.index > vNodeNew.options.index) {
+            } else if (vNodeOld.index > vNodeNew.index) {
                 //replace node
                 let element = this._createDomElement(vNodeNew);
-                parent.replaceChild(element, parent.childNodes[vNodeNew.options.index])
+                parent.replaceChild(element, parent.childNodes[vNodeNew.index])
                 iold--;
-            } else if (vNodeOld.tag == "#comment" && vNodeOld.options.forType == "key" && vNodeNew.tag == "#comment" && vNodeNew.options.forType == "key") {
+            } else if (vNodeOld.tag == "#comment" && vNodeOld.forType == "key" && vNodeNew.tag == "#comment" && vNodeNew.forType == "key") {
                 //for loop by key
                 var oldStartIndex = i + iold;
                 var oldEndIndex = oldStartIndex;
@@ -743,7 +750,7 @@ class XWebComponent extends HTMLElement {
                 this._diffDomListByKey(vNodesOld, oldStartIndex, oldEndIndex, vNodesNew, newStartIndex, newEndIndex, parent);
                 iold += oldEndIndex - oldStartIndex;
                 inew += newEndIndex - newStartIndex;
-            } else if (vNodeOld.tag == "#comment" && vNodeOld.options.forType == "position" && vNodeNew.tag == "#comment" && vNodeNew.options.forType == "position") {
+            } else if (vNodeOld.tag == "#comment" && vNodeOld.forType == "position" && vNodeNew.tag == "#comment" && vNodeNew.forType == "position") {
                 //for loop by position
                 var oldStartIndex = i + iold;
                 var oldEndIndex = oldStartIndex;
@@ -758,7 +765,7 @@ class XWebComponent extends HTMLElement {
                 //slot
             } else {
                 //diff node
-                let child = parent.childNodes[vNodeNew.options.index + inew];
+                let child = parent.childNodes[vNodeNew.index + inew];
                 try {
                     this._diffDomElement(vNodeOld, vNodeNew, child);
                 } catch (e) {
@@ -768,7 +775,7 @@ class XWebComponent extends HTMLElement {
         }
     }
     _diffDomElement(vNodeOld, vNodeNew, element) {
-        if (vNodeNew.options.once) {
+        if (vNodeNew.once) {
             return;
         }
         //attrs
@@ -808,9 +815,9 @@ class XWebComponent extends HTMLElement {
             //} else if (typeof (vNodeNew.children) == "string") {
         } else {
             if (vNodeOld.children != vNodeNew.children) {
-                if (vNodeNew.options.format == 'html') {
+                if (vNodeNew.format == 'html') {
                     element.innerHTML = vNodeNew.children;
-                } else if (vNodeNew.options.format == 'json') {
+                } else if (vNodeNew.format == 'json') {
                     element.textContent = JSON.stringify(vNodeNew.children);
                 } else {
                     element.textContent = vNodeNew.children;
@@ -844,11 +851,11 @@ class XWebComponent extends HTMLElement {
         //get oldKeys and newKeys
         let oldKeys = [];
         for (let i = oldStartIndex + 1; i < oldEndIndex; i++) {
-            oldKeys.push(vNodesOld[i].options.key);
+            oldKeys.push(vNodesOld[i].key);
         }
         let newKeys = [];
         for (let i = newStartIndex + 1; i < newEndIndex; i++) {
-            newKeys.push(vNodesNew[i].options.key);
+            newKeys.push(vNodesNew[i].key);
         }       
         //check for duplicates
         const duplicates = newKeys.filter((item, index) => newKeys.indexOf(item) !== index);
@@ -901,7 +908,9 @@ class XWebComponent extends HTMLElement {
             }
         }
     }
-
+    handleEvent(event) {
+        debugger;
+    }
 }
 
 //export

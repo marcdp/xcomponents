@@ -1,6 +1,7 @@
 ﻿
 using Microsoft.AspNetCore.Builder;
 using Microsoft.Extensions.DependencyInjection;
+using System.Linq;
 
 using XComponents.Middlewares;
 
@@ -29,6 +30,7 @@ namespace XComponents {
             }
             // add router  
             services.AddSingleton<Router>();
+
         }
         public static void UseXComponents(this IApplicationBuilder app) {
             // use status code pages with re execute

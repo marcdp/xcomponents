@@ -27,6 +27,7 @@ namespace XComponents.SourceGenerator {
             foreach (var node in nodes) { 
                 //inc sequence
                 sequence++;
+                code.AppendLine($"{indent}//{index}");
                 //process
                 if (node.NodeType == HtmlNodeType.Text) {
                     //#text
@@ -38,10 +39,11 @@ namespace XComponents.SourceGenerator {
                         //pre text
                         var pre = text.Substring(i, j - i);
                         code.AppendLine($"{indent}__context.Write({Utils.EscapeCsString(pre)});");
+                        index++;
                         var k = text.IndexOf("}}", j);
                         if (k == -1) {
                             //error
-                            diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, []);
+                            diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, "");
                             break;
                         }
                         //expression
@@ -53,9 +55,10 @@ namespace XComponents.SourceGenerator {
                         var (endLine, endColumn) = Utils.GetTextPosition(text, node.Line, node.LinePosition, k);
                         code.AppendLine($"{indent}#line ({startLine},{startColumn + 2 + 1})-({endLine},{endColumn}) 1 \"{definition.TemplatePath}\"");
                         //write value
-                        //code.AppendLine($"{indent}__context.WriteHtml(\"<!-- x:text -->\");");
+                        code.AppendLine($"{indent}__context.Write(\"<!-- x:text -->\");");
                         code.AppendLine($"{indent}__context.WriteHtml({expression});");
-                        //code.AppendLine($"{indent}__context.WriteHtml(\"<!-- /x:text -->\");");
+                        code.AppendLine($"{indent}__context.Write(\"<!-- /x:text -->\");");
+                        index++;
                         //line hidden
                         code.AppendLine($"{indent}#line hidden");
                         i = k + 2;
@@ -64,11 +67,13 @@ namespace XComponents.SourceGenerator {
                     //post text
                     var post = text.Substring(i);
                     code.AppendLine($"{indent}__context.Write({Utils.EscapeCsString(post)});");
+                    index++;
 
                 } else if (node.NodeType == HtmlNodeType.Comment) {
                     //#comment
                     code.AppendLine($"{indent}//#comment");
                     code.AppendLine($"{indent}__context.Write({Utils.EscapeCsString(node.InnerHtml)});");
+                    index++;
 
                 } else if (node.NodeType == HtmlNodeType.Element && node.Name.Equals("x:text")) {
                     //<x:text></x:text>
@@ -77,6 +82,7 @@ namespace XComponents.SourceGenerator {
                     code.AppendLine($"{indent}#line ({node.Line},{node.LinePosition + length + 1})-({node.Line},{node.LinePosition + length + node.InnerHtml.Length}) 1 \"{definition.TemplatePath}\"");
                     code.AppendLine($"{indent}__context.WriteHtml({node.InnerText});");
                     code.AppendLine($"{indent}#line hidden");
+                    index++;
 
                 } else if (node.NodeType == HtmlNodeType.Element && node.Name.Equals("x:json")) {
                     //<x:json></x:json>
@@ -92,10 +98,11 @@ namespace XComponents.SourceGenerator {
                     code.AppendLine($"{indent}#line ({node.Line},{node.LinePosition + 1})-({node.Line},{node.LinePosition + 1 + node.OuterHtml.Length}) 1 \"{definition.TemplatePath}\"");
                     code.AppendLine($"{indent}System.Diagnostics.Debugger.Break();");
                     code.AppendLine($"{indent}#line hidden");
+                    index++;
 
                 } else if (node.NodeType == HtmlNodeType.Element && node.Name.StartsWith("x:")) {
                     //error
-                    diagnostics.Report(DiagnosticDescriptors.XC1002__HtmlInvalidNode, node, definition.TemplatePath, []);
+                    diagnostics.Report(DiagnosticDescriptors.XC1002__HtmlInvalidNode, node, definition.TemplatePath, "");
 
                 } else if (node.NodeType == HtmlNodeType.Element) {
                     //<element>
@@ -153,7 +160,7 @@ namespace XComponents.SourceGenerator {
                         var forName = $"__for{sequence}";
                         var forArray = xAttribute.DeEntitizeValue.Replace(" in ", "#").Trim().Split(['#'], StringSplitOptions.RemoveEmptyEntries);
                         if (forArray.Length != 2) {
-                            diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, [$"Error compiling component {definition.ComponentName}: invalid x-for expression ${xAttribute.DeEntitizeValue}"]);
+                            diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {definition.ComponentName}: invalid x-for expression ${xAttribute.DeEntitizeValue}");
                         } else {
                             var forItem = forArray[0];
                             var forIndex = forName + "_index";
@@ -216,8 +223,7 @@ namespace XComponents.SourceGenerator {
                         }
                     }
 
-                    // node start
-                    
+                    // node start                    
                     if (node.Attributes.Contains("x-pre")) {
                         // x-pre: skip children
                         var xAttribute = node.Attributes["x-pre"];
@@ -253,7 +259,7 @@ namespace XComponents.SourceGenerator {
                                 node.Attributes.Remove(attribute);
                             } else if (attribute.Name.Equals("x-show")) {
                                 // ...<span x-show="state.value > 0"> bigger than 0</span>...
-                                diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, [$"Error compiling component {definition.ComponentName}: invalid node attribute ${attribute.Name} in a server XComponent: not implemented"]);
+                                diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {definition.ComponentName}: invalid node attribute ${attribute.Name} in a server XComponent: not implemented");
                             } else {
                                 // ...<my-component title="this is a title"></my-component>...
                                 code.AppendLine($"{indent}if (!{compName}.SetFromAttribute({Utils.EscapeCsString(attribute.Name)}, {Utils.EscapeCsString(attribute.DeEntitizeValue)})) __context.Logger.LogWarning(\"Unable to set attribute: {node.Name} has no attribute named: {attribute.Name}\");");
@@ -362,13 +368,14 @@ namespace XComponents.SourceGenerator {
                     if (!node.Attributes.Contains("x-pre")) {
                         foreach (var attributeName in node.Attributes.Select(x => x.Name)) {
                             if (attributeName.StartsWith("x-")) {
-                                diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, [$"Error compiling component {definition.ComponentName}: invalid node attribute ${attributeName}: not implemented"]);
+                                diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {definition.ComponentName}: invalid node attribute ${attributeName}: not implemented");
                             }
                         }
                     }
+                    // inc index
+                    index++;
                 }
-                // inc index
-                index++;
+                
             }
             
         } 

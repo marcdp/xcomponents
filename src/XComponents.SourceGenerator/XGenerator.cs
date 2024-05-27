@@ -27,16 +27,7 @@ namespace XComponents.SourceGenerator {
         public void Execute(GeneratorExecutionContext context) {
             var classNames = new List<string>();
             var sourceGenerator = new SourceGenerator();
-            // Diagnostics
-            var diagnostics = new SourceGenerator.Diagnostics((DiagnosticDescriptor descriptor, string path, object[] arguments) => {
-                int k = 123;
-                //var line = node.Line - 1;
-                //    var column = node.LinePosition;
-                //    var position = node.StreamPosition;
-                //    var location = Location.Create(templatePath, new TextSpan(position, 1), new LinePositionSpan(new LinePosition(line, column), new LinePosition(line, column + 1)));
-                //    context.ReportDiagnostic(Diagnostic.Create(diagnosticDescriptor, location, templatePath, message));
-                //context.ReportDiagnostic(Diagnostic.Create(DiagnosticDescriptors.XC1000__FileNotFound,, null, templatePath));
-            });
+            var diagnostics = new SourceGenerator.Diagnostics(context);
             // Find all classes that inherit from XComponent
             var xTypes = context.Compilation
                     .SyntaxTrees  

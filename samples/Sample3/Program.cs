@@ -1,4 +1,6 @@
 
+using Microsoft.AspNetCore.Http.Features;
+
 using Sample3.App;
 
 using XComponents;
@@ -7,7 +9,75 @@ namespace Sample3 {
 
     public class Program {
 
+
+
+
         public static async Task Main(string[] args) {
+
+
+            var values = new string[] { "hello", "world" };
+            //new List(XComponents.Converter.ToEnumerable<int>(values)).ForEach((item) => {
+            //    var aaa = item.Item1;
+            //    var aaa2 = item.Item2;
+            //    var aaa3 = item.Item3;
+
+            //});
+            //var if1 = false;
+            //VNode[] auxxxxx = [
+            //    new VNode("#text",0).Attribute("one","1").Property("asda", 123).Option("index",1).Text("hello world"),
+            //    new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text("hello world"),
+            //    new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text("hello world"),
+            //    new VNode("#text",0).Attribute("one","1").Property("asda", 123).Children([
+            //        new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text("hello world"),
+            //        new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text("hello world"),
+            //        new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text("hello world"),
+            //        new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text("hello world"),
+            //        new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text("hello world"),
+            //    ]),
+            //    .. ((if1 = true) == true ? new VNode[] { new VNode("#text", 0).Attribute("one","1").Property("asda", 123).Text("hello world") } : []),
+            //    .. values.Select((item, index) => new VNode("#text",0).Attribute("one","1").Property("asda", 123).Text(item))  
+
+            //];
+            //var state = new {
+            //    Items = new int[] { 1, 2, 3 }
+            //};
+            //VNode[] aaaaaaa = [
+            //    new VNode("#text", 0).Text("\r\n"),
+            //    new VNode("#text", 1).Text("\r\n"),
+            //    new VNode("i", index:2).Children([
+            //        new VNode("#text", 0).Text("hello"),
+            //        new VNode("b", index:1),
+            //        new VNode("#text", 2).Text("world"),
+            //    ]),
+            //    new VNode("#text", 3).Text("\r\n"),
+            //    new VNode("#comment", 4).Option("forType", "position").Text("x-for-start"),
+            //    .. XComponents.Converter.ToEnumerable(state.Items).Select((itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm, index) => new VNode("li", index:4).Children([
+            //        new VNode("#text", 0).Text("\r\n"),
+            //    ])),
+            //    new VNode("#comment", 4).Option("forType", "position").Text("x-for-end"),
+            //    new VNode("#text", 5).Text("\r\n\r\n"),
+            //    new VNode("#comment", 6).Text(""),
+            //    new VNode("#text", 7).Text("\r\n"),
+            //];
+
+
+            //var ffff = new VDOM("#text", new Dictionary<string, string>() {
+            //    {"one", "1" }
+            //});
+            //var ffff2 = new VDOM("#text", new() {{"one", "1" }, {"two", "22" }});
+
+            //VDOM[] jj = [
+            //    new VDOM("#text", { ["one"] = "1"})
+            //];
+
+            //object aaa = [
+            //    new { tag = "#text", attrs= new { }, props= new { }, events= new { }, options= new {  index= 0}, children= "\r\n\r\n\r\n"},
+            //    new { tag = "#text", attrs= new { }, props= new { }, events= new { }, options= new {  index= 2}, children= "\r\nvalue= "},
+            //    new { tag = "#text", attrs= new { }, props= new { }, events= new { }, options= new {  index= 3}, children= 123},
+            //    new { tag = "#text", attrs= new { }, props= new { }, events= new { }, options= new {  index= 4}, children= "."},
+            //    new { tag = "#text", attrs= new { }, props= new { }, events= new { }, options= new {  index= 5}, children= 124},
+            //    new { tag = "#text", attrs= new { }, props= new { }, events= new { }, options= new {  index= 6}, children= "..\r\n"}
+            //];
 
             // Create the builder
             var builder = WebApplication.CreateBuilder(args);
