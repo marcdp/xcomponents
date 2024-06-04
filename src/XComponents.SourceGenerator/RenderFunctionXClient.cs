@@ -55,9 +55,9 @@ namespace XComponents.SourceGenerator {
                     //expression
                     var expression = text.Substring(j + 2, k - j - 2);
                     //write value
-                    js.AppendLine(indent + "{tag:\"#comment\", index:" + (index + inc++) + ", children:\" x:test \"},");
+                    js.AppendLine(indent + "{tag:\"#comment\", index:" + (index + inc++) + ", children:\"x:text\"},");
                     js.AppendLine(indent + "{tag:\"#text\", index:" + (index + inc++) + ", children:" + expression + "},");
-                    js.AppendLine(indent + "{tag:\"#comment\", index:" + (index + inc++) + ", children:\" /x:test \"},");
+                    js.AppendLine(indent + "{tag:\"#comment\", index:" + (index + inc++) + ", children:\"/x:text\"},");
                     i = k + 2;
                     j = text.IndexOf("{{", i);
                 }
@@ -69,23 +69,19 @@ namespace XComponents.SourceGenerator {
                 var textContent = node.InnerText;
                 var jsLine = new StringBuilder();
                 jsLine.Append(indent);
-                jsLine.Append("{tag:\"#comment\", index:" + index + ", children:" + Utils.EscapeCsString(textContent) + ")},");
+                jsLine.Append("{tag:\"#comment\", index:" + (index + inc++) + ", children:\"aaaa\" + " + Utils.EscapeCsString(textContent) + "},");
                 js.AppendLine(jsLine.ToString());
-                inc++;
             } else if (node.Name == "x:text") {
                 //x:text
                 var jsLine = new StringBuilder();
                 jsLine.Append(indent);
-                jsLine.Append("{tag:\"#text\", index:" + index + ", children: \"\" + " + node.InnerText + "},");
+                jsLine.Append("{tag:\"#text\", index:" + (index + inc++) + ", children: \"\" + " + node.InnerText + "},");
                 js.AppendLine(jsLine.ToString());
-                inc++;
             } else if (node.Name.StartsWith("x:")) {
                 //error
                 diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {name}: invalid node {node.Name}: not implemented");
             } else if (node.Name == "script" && node.GetAttributeValue("type","")=="module") {
-                //script
-                //ignorers it
-                int k = 132;
+                //module script (ignores it)                
             } else {
                 //element
                 var jsLine = new List<string>();
@@ -101,8 +97,7 @@ namespace XComponents.SourceGenerator {
                 var wrapChildNodes = false;
                 var eventVariable = "";
                 options.Add("index:" + index);
-                foreach(var attr in node.GetAttributes()) {
-                    
+                foreach(var attr in node.GetAttributes()) {                    
                     if (attr.Name == "x-text") {
                         //...<span x-text="state.value"></span>...
                         if (node.ChildNodes.Count > 0) diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {name}: invalid x-text node: non empty");
@@ -151,16 +146,16 @@ namespace XComponents.SourceGenerator {
                         events.Add("'" + eventName + "': ['" + eventHandler + "'" + string.Join("", eventVariables.Select(x => ", " + x)) + "]");
                     } else if (attr.Name == "x-if") {
                         //...<span x-if="state.value > 0">greather than 0</span>...
-                        jsLine[0] = indent + "...((_ifs.c" + level + " = (" + attr.Value + ")) ? [";
-                        jsPostLine.Add("] : []),");
+                        jsLine[0] = indent + "//x-if " + attr.Value + "\n" + indent + "...((_ifs.c" + level + " = (" + attr.Value + ")) ? [";
+                        jsPostLine.Add("] : [{tag:\"#comment\", index:" + (index) + ", children:\"x-if " + attr.Value + "\"}]),");
                     } else if (attr.Name == "x-elseif") {
                         //...<span x-elseif="state.value < 0">less than 0</span>...
-                        jsLine[0] = indent + "...(_ifs.c" + level + " ? [] : (_ifs.c" + level + " = (" + attr.Value + ")) ? [";
-                        jsPostLine.Add("] : []),");
+                        jsLine[0] = indent + "//x-elseif " + attr.Value + "\n" + indent + "...(_ifs.c" + level + " ? [{tag:\"#comment\", index:" + (index) + ", children:\"x-elseif " + attr.Value + "\"}] : (_ifs.c" + level + " = (" + attr.Value + ")) ? [";
+                        jsPostLine.Add("] : [{tag:\"#comment\", index:" + (index) + ", children:\"x-elseif " + attr.Value + "\"}]),");
                     } else if (attr.Name == "x-else") {
                         //...<span x-else>is 0</span>...
-                        jsLine[0] = indent + "...(!_ifs.c" + level + " ? [";
-                        jsPostLine.Add("] : []),");
+                        jsLine[0] = indent + "//x-else\n" + indent + "...(!_ifs.c" + level + " ? [";
+                        jsPostLine.Add("] : [{tag:\"#comment\", index:" + (index) + ", children:\"x-else\"}]),");
                     } else if (attr.Name == "x-for") {
                         //...<li x-for="item in state.items" x-key="name">{{item.name + '(' + item.count + ') '}}</li>...
                         var keyName = node.GetAttributeValue("x-key", "");
@@ -171,7 +166,7 @@ namespace XComponents.SourceGenerator {
                             forType = "position";
                         }
                         //creates a comment virtual node that indicates the start of the for loop, and the type of the loop
-                        js.AppendLine(indent + "{tag:\"#comment\", index:" + index + ", forType:'" + forType + "', children:'x-for-start'},");
+                        js.AppendLine(indent + "//x-for\n" + indent + "{tag:\"#comment\", index:" + (index) + ", forType:'" + forType + "', children:'x-for-start'},");
                         //add loop
                         var parts = attr.Value.Replace(" in ","|").Split('|');
                         if (parts.Length != 2) diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling template: invalid x-for attribute detected: {attr.Value}");
@@ -187,7 +182,8 @@ namespace XComponents.SourceGenerator {
                         jsPostLine.Add(")),");
                         if (!string.IsNullOrEmpty(keyName)) options.Add("\"key\":" + itemName + "." + keyName);
                         //creates a comment end node that indicates the end of the for loop
-                        jsPost.Add(indent + "{tag:\"#comment\", index:" + index + ", forType:'" + forType + "', children:'x-for-end'},\n");
+                        jsPost.Add(indent + "{tag:\"#comment\", index:" + (index) + ", forType:'" + forType + "', children:'x-for-end'},\n");
+                        jsPost.Add(indent + "// /x-for\n");
                         wrapChildNodes = true;
                         eventVariable = itemName;
                     } else if (attr.Name == "x-key") {
@@ -263,7 +259,7 @@ namespace XComponents.SourceGenerator {
                     jsLine.Add(", children:" + text + "");
                     jsLine.Add("}," + (jsPostLine.Count > 0 ? String.Join("", jsPostLine) : ""));
                     js.Append(string.Join("", jsLine.ToArray()));
-                } else if (node.ChildNodes.Count > 0) {
+                } else if (node.ChildNodes.Count > 0 || !string.IsNullOrEmpty(node.GetAttributeValue("x-for", ""))) {
                     jsLine.Add(", children:[\n");
                     js.Append(string.Join("", jsLine.ToArray()));
                     var subIndex = 0;

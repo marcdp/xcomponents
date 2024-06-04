@@ -5,17 +5,17 @@ let idCounter = 0;
 
 
 // XComponents
-class XComponents {
+class XComponentsClass {
 
 
-    //var
+    // vars
     _config = {
         _version: ""
     }
     _components = {};
 
 
-    //ctor
+    // ctor
     constructor() {
     }
 
@@ -80,10 +80,6 @@ class XComponents {
 }
 
 
-// set global variable
-var xcomponents = new XComponents();
-window.XComponents = xcomponents;
-
-
-// export
-export default xcomponents;
+// singleton
+var XComponents = new XComponentsClass();
+window.XComponents = XComponents;

@@ -16,22 +16,22 @@ namespace XComponents.Middlewares {
             var textWriter = new StringWriter();
             var context = new XContext(httpContext, configuration, textWriter, logger, services);
 
-            // Pre Html
-            context.PreHtml.AppendLine($"    <script type=\"importmap\">");
-            context.PreHtml.AppendLine($"        {{");
-            context.PreHtml.AppendLine($"            \"imports\": {{");
-            context.PreHtml.AppendLine($"                \"x-components\":\"/_content/XComponents/x-components.js?v={configuration.Version}\",");
-            context.PreHtml.AppendLine($"                \"x-web-component\":\"/_content/XComponents/x-web-component.js?v={configuration.Version}\"");
-            context.PreHtml.AppendLine($"            }}");
-            context.PreHtml.AppendLine($"        }}");
-            context.PreHtml.AppendLine($"    </script>");
-            context.PreHtml.AppendLine($"    <script type=\"module\">");
-            context.PreHtml.AppendLine($"        import XComponents from 'x-components';");
-            context.PreHtml.AppendLine($"        XComponents.config((options) => {{");
-            context.PreHtml.AppendLine($"            options.version = \"{configuration.Version}\";");
-            context.PreHtml.AppendLine($"        }});");
-            context.PreHtml.AppendLine($"        XComponents.start();");
-            context.PreHtml.AppendLine($"    </script>");
+            // Post Html
+            context.PostHtml.AppendLine($"<!-- XComponents -->");
+            context.PostHtml.AppendLine($"<script type=\"importmap\">");
+            context.PostHtml.AppendLine($"    {{");
+            context.PostHtml.AppendLine($"        \"imports\": {{");
+            context.PostHtml.AppendLine($"            \"x-web-component\":\"/_content/XComponents/x-web-component.js?v={configuration.Version}\"");
+            context.PostHtml.AppendLine($"        }}");
+            context.PostHtml.AppendLine($"    }}");
+            context.PostHtml.AppendLine($"</script>");
+            context.PostHtml.AppendLine($"<script src=\"/_content/XComponents/x-components.js?v={configuration.Version}\"></script>");
+            context.PostHtml.AppendLine($"<script>");
+            context.PostHtml.AppendLine($"    XComponents.config((options) => {{");
+            context.PostHtml.AppendLine($"        options.version = \"{configuration.Version}\";"); 
+            context.PostHtml.AppendLine($"    }});");
+            context.PostHtml.AppendLine($"    XComponents.start();");
+            context.PostHtml.AppendLine($"</script>");
 
             // get page instance, from route
             var page = router.Resolve(context);

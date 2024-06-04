@@ -73,23 +73,19 @@ namespace XComponents.SourceGenerator {
                 var textContent = node.InnerText;
                 var jsLine = new StringBuilder();
                 jsLine.Append(indent);
-                jsLine.Append("new VNode(\"#comment\", " + index + ").Text(" + Utils.EscapeCsString(textContent) + "),");
+                jsLine.Append("new VNode(\"#comment\", " + (index + inc++) + ").Text(" + Utils.EscapeCsString(textContent) + "),");
                 code.AppendLine(jsLine.ToString());
-                inc++;
             } else if (node.Name == "x:text") {
                 //x:text
                 var jsLine = new StringBuilder();
                 jsLine.Append(indent);
-                jsLine.Append("new VNode(\"#text\", " + index + ").Text(\"\" + " + node.InnerText + "),");
+                jsLine.Append("new VNode(\"#text\", " + (index + inc++) + ").Text(\"\" + " + node.InnerText + "),");
                 code.AppendLine(jsLine.ToString());
-                inc++;
             } else if (node.Name.StartsWith("x:")) {
                 //error
                 diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {name}: invalid node {node.Name}: not implemented");
             } else if (node.Name == "script" && node.GetAttributeValue("type","")=="module") {
-                //script
-                //ignorers it
-                int k = 132;
+                //module script (ignores it)
             } else {
                 //element
                 var jsLine = new List<string>();
@@ -147,18 +143,18 @@ namespace XComponents.SourceGenerator {
                         jsLine.Add(".Event(\"" + eventName + "\", \"" + eventHandler + "\"" + string.Join("", eventVariables.Select(x => ", " + x)) + ")");
                     } else if (attr.Name == "x-if") {
                         //...<span x-if="state.value > 0">greather than 0</span>...
-                        jsLine[0] = indent + ".. ((_ifs" + level + " = (" + attr.Value + ")) ? new VNode[] {";
-                        jsPostLine.Add("} : []),");
+                        jsLine[0] = indent + "//x-if " + attr.Value + "\n" + indent + ".. ((_ifs" + level + " = (" + attr.Value + ")) ? new VNode[] {";
+                        jsPostLine.Add("} : [new VNode(\"#comment\", " + index + ").Text(\"" + attr.Value + "\")]),");
                         var varDefinition = "var _ifs" + level + " = false;";
                         if (!varDefinitions.Contains(varDefinition)) varDefinitions.Add(varDefinition);
                     } else if (attr.Name == "x-elseif") {
                         //...<span x-elseif="state.value < 0">less than 0</span>...
-                        jsLine[0] = indent + ".. (_ifs" + level + " ? [] : (_ifs" + level + " = (" + attr.Value + ")) ? new VNode[] {";
-                        jsPostLine.Add("} : []),");
+                        jsLine[0] = indent + "//x-elseif " + attr.Value + "\n" + indent + ".. (_ifs" + level + " ? [new VNode(\"#comment\", " + index + ").Text(\"x-elseif " + attr.Value + "\")] : (_ifs" + level + " = (" + attr.Value + ")) ? new VNode[] {";
+                        jsPostLine.Add("} : [new VNode(\"#comment\", " + index + ").Text(\"x-elseif " + attr.Value + "\")]),");
                     } else if (attr.Name == "x-else") {
                         //...<span x-else>is 0</span>...
-                        jsLine[0] = indent + ".. (!_ifs" + level + " ? new VNode[] {";
-                        jsPostLine.Add("} : []),");
+                        jsLine[0] = indent + "//x-else\n" + indent + ".. (!_ifs" + level + " ? new VNode[] {";
+                        jsPostLine.Add("} : [new VNode(\"#comment\", " + index + ").Text(\"x-else\")]),");
                     } else if (attr.Name == "x-for") {
                         //...<li x-for="item in state.items" x-key="name">{{item.name + '(' + item.count + ') '}}</li>...
                         var keyName = node.GetAttributeValue("x-key", "");
@@ -169,7 +165,7 @@ namespace XComponents.SourceGenerator {
                             forType = "position";
                         }
                         //creates a comment virtual node that indicates the start of the for loop, and the type of the loop
-                        code.AppendLine(indent + "new VNode(\"#comment\", " + index + ").Option(\"forType\", \"" + forType + "\").Text(\"x-for-start\"),");
+                        code.AppendLine(indent + "//x-for\n" + indent + "new VNode(\"#comment\", " + index + ").Option(\"forType\", \"" + forType + "\").Text(\"x-for-start\"),");
                         //add loop
                         var parts = attr.Value.Replace(" in ","|").Split('|');
                         if (parts.Length != 2) diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling template: invalid x-for attribute detected: {attr.Value}");
@@ -188,9 +184,10 @@ namespace XComponents.SourceGenerator {
                         }
                         //creates a comment end node that indicates the end of the for loop
                         jsPost.Add(indent + "new VNode(\"#comment\", " + index + ").Option(\"forType\", \"" + forType + "\").Text(\"x-for-end\"),\n");
+                        jsPost.Add(indent + "// /x-for\n");
                         eventVariable = itemName;
                     } else if (attr.Name == "x-key") {
-                        //used in x-for
+                        //used in x-for 
                     } else if (attr.Name == "x-show") {
                         //...<span x-show="state.value > 0">greather than 0</span>...
                         // todo....
@@ -201,7 +198,7 @@ namespace XComponents.SourceGenerator {
                         var nodeName = node.Name.ToLower();
                         var propertyName = "value";
                         var propValue = attr.Value;
-                        if (nodeName == "input") {
+                        if (nodeName == "input") { 
                             var type = node.GetAttributeValue("type", "");
                             if (type == "range") {
                                 propertyName = "valueAsNumber";
@@ -233,7 +230,6 @@ namespace XComponents.SourceGenerator {
                         } else if (nodeName == "textarea") {
                         }
                         //events.Add("'" + eventName + "': (event) => { " + propValue + " = event.target." + propertyName + "; this.invalidate(); }");
-
                         
                     } else if (attr.Name == "x-once") {
                         //x-once: only render once
@@ -259,7 +255,7 @@ namespace XComponents.SourceGenerator {
                     jsLine.Add(".Text(" + text + ")");
                     jsLine.Add(", " + (jsPostLine.Count > 0 ? String.Join("", jsPostLine) : ""));
                     code.Append(string.Join("", jsLine.ToArray()));
-                } else if (node.ChildNodes.Count > 0) {
+                } else if (node.ChildNodes.Count > 0 || !string.IsNullOrEmpty(node.GetAttributeValue("x-for", ""))) {
                     jsLine.Add(".Children([\n");
                     code.Append(string.Join("", jsLine.ToArray()));
                     var subIndex = 0;

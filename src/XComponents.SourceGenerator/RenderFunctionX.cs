@@ -213,6 +213,12 @@ namespace XComponents.SourceGenerator {
                         node.Attributes.Remove(xAttribute);
                     }
 
+                    // x-key
+                    if (node.Attributes.Contains("x-key")) {
+                        var xAttribute = node.Attributes["x-key"];
+                        node.Attributes.Remove(xAttribute);
+                    }
+
                     // x-on
                     foreach (var attribute in node.Attributes.ToArray()) {
                         if (attribute.Name.StartsWith("x-on:") || attribute.Name.StartsWith("@")) {

@@ -1,3 +1,31 @@
+<b></b>
+
+<li x-for="item in state.Items">a</li>
+
+<div x-if="state.Value > 125 && state.Value < 130">
+    is greather than X
+</div>
+<div x-elseif="state.Value > 135">
+    is less than X
+</div>
+<div x-else style="color:red">
+    is X !!!!!!!!!!!!!
+</div>                                                        
+
+{{state.Value}}
+
+<ul>
+    <li x-for="itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm in state.Items">
+        value is:
+        <a @click="test">{{itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm}}</a>.
+        <span x-for="i in 10">
+            <a @click="test">{{i}}</a>.
+        </span>
+        <button x-on:click="decrement">Dec</button>
+    </li>
+</ul>
+
+<button x-on:click="increment">Inc</button>
 
 <script type="module">
     import XWebComponent from "x-web-component";
@@ -8,7 +36,8 @@
 
         constructor() {
             super({
-                Value: 0
+                Value: 125,
+                Items: [{ name: "hello" }, { name: "world1" }, { name: "world2" }, { name: "world3" }, { name: "world4" }, { name: "world5" }, { name: "world6" }]
             });
         }
         connectedCallback() {
@@ -25,41 +54,3 @@
         }
     });
 </script>
-
-
-<i>hello<b></b>world</i>
-<li x-for="itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm in state.Items">
-</li>
-
-<button x-on:click="decrement">Dec</button>
-    value: {{state.Value}}.{{state.Value}}..
-<button x-on:click="increment">Inc</button>
-<ul>
-    <li x-for="itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm in state.Items">
-        value is:
-        <a @click="test">{{itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm}}</a>.
-        <span x-for="i in 10">
-            <a @click="test">{{i}}</a>.
-        </span>
-        <button x-on:click="decrement">Dec</button>
-    </li>
-</ul>
-<hr />
-
-<div x-if="state.Value > 125">
-    is greather than X
-</div>
-<div x-elseif="state.Value < 125">
-    is LESS than X
-</div>
-<div x-else>
-    is X !!!!!!!!!!!!!
-</div>
-
-
-
-
-
-<div x-if="state.Value > 11">
-    xxxxxxxxxxxxxxxxxxxxxxxx
-</div>                
