@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection.Metadata;
@@ -13,29 +14,85 @@ using Microsoft.CodeAnalysis.Text;
 
 namespace XComponents.SourceGenerator {
 
-    public class RenderFunctionXServer {
+    public class RenderFunctionXWebComponent {
 
-
-        // Vars
-        private readonly string[] HTML_SELFCLOSING_TAGS = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr", "", ""];
 
         // Methods
-        public string CreateRenderFunction(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, HtmlDocument document) {
+        public string CreateRenderServer(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, HtmlDocument document) {
+            var code = new StringBuilder();
+            //result
+            var result = new StringBuilder();
+            result.AppendLine($"        protected override VNode[]? RenderVNodes(string __slot, XContext __context) {{");
+            result.AppendLine("            var state = new State(this);");
+            //named slots
+            var slotNames = new List<string>();
+            foreach (var node in document.DocumentNode.ChildNodes) {
+                if (node.NodeType == HtmlNodeType.Element && node.Attributes.Contains("slot")) {
+                    var slotName = node.GetAttributeValue("slot", "");
+                    if (!slotNames.Contains(slotName)) slotNames.Add(slotName);
+                }
+            }
+            foreach (var slotName in slotNames) {
+                var index = 0;
+                var slotCode = new StringBuilder();
+                var slotVariables = new List<string>();
+                foreach (var node in document.DocumentNode.ChildNodes) {
+                    if (node.NodeType == HtmlNodeType.Element && node.Attributes.Contains("slot") && node.GetAttributeValue("slot", "") == slotName) {
+                        index += CreateRenderFunctionRecursive(definition, diagnostics, "", node, index, slotCode, 1, slotVariables, new());
+                    }
+                }
+                result.AppendLine("            if (__slot.Equals(\"" + slotName + "\")) {");
+                if (slotVariables.Count > 0) result.AppendLine("                " + string.Join("\n                ", slotVariables.ToArray()));
+                result.AppendLine("                return [");
+                result.Append(slotCode);
+                result.AppendLine("                ];");
+                result.AppendLine("            }");
+            }
+            //un-slotted content
+            if (true) {
+                var index = 0;
+                var slotCode = new StringBuilder();
+                var slotVariables = new List<string>();                
+                foreach (var node in document.DocumentNode.ChildNodes) {
+                    if (node.NodeType == HtmlNodeType.Element && node.Attributes.Contains("slot")) {
+                    } else {
+                        index += CreateRenderFunctionRecursive(definition, diagnostics, "", node, index, code, 1, slotVariables, new());
+                    }
+                }
+                result.AppendLine("            if (__slot.Equals(\"\")) {");
+                if (slotVariables.Count > 0) result.AppendLine("                " + string.Join("\n                ", slotVariables.ToArray()));
+                result.AppendLine("                return [");
+                result.Append(code);
+                result.AppendLine("                ];");
+                result.AppendLine("            }");
+            }
+            result.AppendLine("            return null;");
+            result.AppendLine("        }");
+            //return
+            return result.ToString();
+        }
+        public string CreateRenderClient(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, string js, HtmlDocument document) {
             var code = new StringBuilder();
             var index = 0;
             var varDefinitions = new List<string>();
             var codeInternal = new StringBuilder();
+            if (js.Length == 0) {
+                js = $"import XWebComponent from \"x-web-component\";\nXWebComponent.define(\"{definition.ComponentName}\", class extends XWebComponent {{\n}})\n";
+            }
             foreach (var node in document.DocumentNode.ChildNodes) {
                 index += CreateRenderFunctionRecursive(definition, diagnostics, "", node, index, codeInternal, 0, varDefinitions, new());
             }
-            code.AppendLine("        public override VNode[] RenderVNodes(XContext __context) {");
-            code.AppendLine("            var state = new State(this);");
-            if (varDefinitions.Count> 0 ) code.AppendLine("            " + string.Join("\n            ", varDefinitions.ToArray()));
+            code.AppendLine("    render(__context, state) {");
+            if (varDefinitions.Count > 0) {
+                code.AppendLine("            " + string.Join("\n            ", varDefinitions.ToArray()));
+            }
             code.AppendLine("            return [");
             code.Append(codeInternal);
             code.AppendLine("            ];");
             code.AppendLine("        }");
-            return code.ToString();
+            code = code.Replace(".. XComponents.Converter.Enumerate(", "... __context.enumerate(");
+            code = code.Replace("new VNode(", "__context.vNode(");
+            return js.Insert(js.LastIndexOf("})"), code.ToString() + "    ");
         }
         public int CreateRenderFunctionRecursive(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, string name, HtmlNode node, int index, StringBuilder code, int level, List<string> varDefinitions, List<string> eventVariables) {
             var baseLevel = 4;
@@ -59,9 +116,9 @@ namespace XComponents.SourceGenerator {
                     //expression
                     var expression = text.Substring(j + 2, k - j - 2);
                     //write value
-                    code.AppendLine(indent + "new VNode(\"#comment\", " + (index + inc++) + ").Text(\" x:text \"),");
+                    code.AppendLine(indent + "new VNode(\"#comment\", " + (index + inc++) + ").Text(\"<!-- x:text -->\"),");
                     code.AppendLine(indent + "new VNode(\"#text\", " + (index + inc++) + ").Text(" + expression + "),");
-                    code.AppendLine(indent + "new VNode(\"#comment\", " + (index + inc++) + ").Text(\" /x:text \"),");
+                    code.AppendLine(indent + "new VNode(\"#comment\", " + (index + inc++) + ").Text(\"<!-- /x:text -->\"),");
                     i = k + 2;
                     j = text.IndexOf("{{", i);
                 }
@@ -70,17 +127,17 @@ namespace XComponents.SourceGenerator {
                 code.AppendLine(indent + "new VNode(\"#text\", " + (index + inc++) + ").Text(" + Utils.EscapeCsString(post) + "),");
             } else if (node.NodeType == HtmlNodeType.Comment) {
                 //#comment
-                var textContent = node.InnerText;
-                var jsLine = new StringBuilder();
-                jsLine.Append(indent);
-                jsLine.Append("new VNode(\"#comment\", " + (index + inc++) + ").Text(" + Utils.EscapeCsString(textContent) + "),");
-                code.AppendLine(jsLine.ToString());
+                var textContent = node.OuterHtml;
+                var csLine = new StringBuilder();
+                csLine.Append(indent);
+                csLine.Append("new VNode(\"#comment\", " + (index + inc++) + ").Text(" + Utils.EscapeCsString(textContent) + "),");
+                code.AppendLine(csLine.ToString());
             } else if (node.Name == "x:text") {
                 //x:text
-                var jsLine = new StringBuilder();
-                jsLine.Append(indent);
-                jsLine.Append("new VNode(\"#text\", " + (index + inc++) + ").Text(\"\" + " + node.InnerText + "),");
-                code.AppendLine(jsLine.ToString());
+                var csLine = new StringBuilder();
+                csLine.Append(indent);
+                csLine.Append("new VNode(\"#text\", " + (index + inc++) + ").Text(\"\" + " + node.InnerText + "),");
+                code.AppendLine(csLine.ToString());
             } else if (node.Name.StartsWith("x:")) {
                 //error
                 diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {name}: invalid node {node.Name}: not implemented");
@@ -88,73 +145,97 @@ namespace XComponents.SourceGenerator {
                 //module script (ignores it)
             } else {
                 //element
-                var jsLine = new List<string>();
-                jsLine.Add(indent);
-                jsLine.Add("new VNode(\"" + node.Name.ToLower() + "\", " + index + ")");
-                var jsPostLine = new List<string>();
-                var jsPost = new List<string>();
+                var csLine = new List<string>();
+                csLine.Add(indent);
+                csLine.Add("new VNode(\"" + node.Name.ToLower() + "\", " + index + ")");
+                var csPost = new List<string>();
                 var text = "";
                 var eventVariable = "";
-                foreach(var attr in node.GetAttributes()) {                    
+                foreach(var attr in node.GetAttributes()) {
+                    //if (attr.Name == "slot") {
+                        //...<span slot="..."></span> ...
+
                     if (attr.Name == "x-text") {
                         //...<span x-text="state.value"></span>...
                         if (node.ChildNodes.Count > 0) diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {name}: invalid x-text node: non empty");
                         text = "\"\" + " + attr.Value;
+
                     } else if (attr.Name == "x-html") {
                         //...<span x-html="state.value"></span>...
                         if (node.ChildNodes.Count > 0) diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling component {name}: invalid x-html node: non empty");
-                        jsLine.Add(".Option(\"format\",\"html\")");
+                        csLine.Add(".Option(\"format\",\"html\")");
                         text = "\"\" + " + attr.Value;
+
                     } else if (attr.Name == "x-attr" || attr.Name == ":") {
                         //...<span x-attr="state.value"></span>...
                         //...<span :="state.value"></span>...
                         var attrValue = attr.Value;
-                        jsLine.Add(".ExpandAttributes(" + attrValue + ")");
+                        csLine.Add(".ExpandAttributes(" + attrValue + ")");
+
                     } else if (attr.Name.StartsWith("x-attr:") || attr.Name.StartsWith(":")) {
                         //...<span x-attr:title="state.value"></span>...
                         var attrName = (attr.Name.StartsWith(":") ? attr.Name.Substring(1) : attr.Name.Substring(attr.Name.IndexOf(':') + 1));
                         var attrValue = attr.Value;
                         if (attrName.StartsWith("[") && attrName.EndsWith("]")) {
-                            jsLine.Add(".Attribute(State." + attrName.Substring(1, attrName.Length - 1) + "," + attrValue + ")");
+                            csLine.Add(".Attribute(State." + attrName.Substring(1, attrName.Length - 1) + "," + attrValue + ")");
                         } else {
-                            jsLine.Add(".Attribute(\"" + attrName + "\"," + attrValue + ")");
+                            csLine.Add(".Attribute(\"" + attrName + "\"," + attrValue + ")");
                         }
+
                     } else if (attr.Name == "x-prop" || attr.Name == ".") {
                         //...<span x-prop="state.value"></span>...
                         //...<span .="state.value"></span>...
                         var propValue = attr.Value;
-                        jsLine.Add(".ExpandProperties(" + propValue + ")");
+                        csLine.Add(".ExpandProperties(" + propValue + ")");
+
                     } else if (attr.Name.StartsWith("x-prop:") || attr.Name.StartsWith(".")) {
                         //...<input x-prop:value="state.value"></input>...
                         //...<input .value="state.value"></input>...
                         var propName = Utils.KebabToCamalCase((attr.Name.StartsWith(".") ? attr.Name.Substring(1) : attr.Name.Substring(attr.Name.IndexOf(':') + 1)));
                         var propValue = attr.Value;
                         if (propName.StartsWith("[") && propName.EndsWith("]")) {
-                            jsLine.Add(".Property(State." + propName.Substring(1, propName.Length - 1) + "," + propValue + ")");
+                            csLine.Add(".Property(State." + propName.Substring(1, propName.Length - 1) + "," + propValue + ")");
                         } else {
-                            jsLine.Add(".Property(\"" + propName  + "\"," + propValue + ")");
+                            csLine.Add(".Property(\"" + propName  + "\"," + propValue + ")");
                         }
+
                     } else if (attr.Name.StartsWith("x-on:") || attr.Name.StartsWith("@")) {
                         //...<button x-on:click="this.onIncrement(event)">+1</button>...
                         //...<button x-on:click="onIncrement">+1</button>...
                         //...<button @click="onIncrement">+1</button>...
                         var eventName = (attr.Name.StartsWith("@") ? attr.Name.Substring(1) : attr.Name.Substring(attr.Name.IndexOf(':') + 1));
                         var eventHandler = attr.Value;
-                        jsLine.Add(".Event(\"" + eventName + "\", \"" + eventHandler + "\"" + string.Join("", eventVariables.Select(x => ", " + x)) + ")");
+                        csLine.Add(".Event(\"" + eventName + "\", \"" + eventHandler + "\"" + string.Join("", eventVariables.Select(x => ", " + x).Reverse()) + ")");
+
                     } else if (attr.Name == "x-if") {
                         //...<span x-if="state.value > 0">greather than 0</span>...
-                        jsLine[0] = indent + "//x-if " + attr.Value + "\n" + indent + ".. ((_ifs" + level + " = (" + attr.Value + ")) ? new VNode[] {";
-                        jsPostLine.Add("} : [new VNode(\"#comment\", " + index + ").Text(\"" + attr.Value + "\")]),");
+                        csLine.Insert(0, indent + "// x-if\n");
+                        csLine.Insert(1, indent + "((_ifs" + level + " = (" + attr.Value + ")) ? \n"); 
+                        csLine.Insert(2, "    ");
+                        csPost.Add(indent + ":");
+                        csPost.Add(indent + "    new VNode(\"#comment\", " + index + ").Text(\"<!-- x-if " + attr.Value + " -->\")");
+                        csPost.Add(indent + "),");
+
                         var varDefinition = "var _ifs" + level + " = false;";
                         if (!varDefinitions.Contains(varDefinition)) varDefinitions.Add(varDefinition);
                     } else if (attr.Name == "x-elseif") {
                         //...<span x-elseif="state.value < 0">less than 0</span>...
-                        jsLine[0] = indent + "//x-elseif " + attr.Value + "\n" + indent + ".. (_ifs" + level + " ? [new VNode(\"#comment\", " + index + ").Text(\"x-elseif " + attr.Value + "\")] : (_ifs" + level + " = (" + attr.Value + ")) ? new VNode[] {";
-                        jsPostLine.Add("} : [new VNode(\"#comment\", " + index + ").Text(\"x-elseif " + attr.Value + "\")]),");
+                        csLine.Insert(0, indent + "// x-elseif\n");
+                        csLine.Insert(1, indent + "((!_ifs" + level + " && (_ifs" + level + " = (" + attr.Value + "))) ? \n");
+                        csLine.Insert(2, "    ");
+                        csPost.Add(indent + ":");
+                        csPost.Add(indent + "    new VNode(\"#comment\", " + index + ").Text(\"<!-- x-elseif " + attr.Value + " -->\")");
+                        csPost.Add(indent + "),");
+
                     } else if (attr.Name == "x-else") {
                         //...<span x-else>is 0</span>...
-                        jsLine[0] = indent + "//x-else\n" + indent + ".. (!_ifs" + level + " ? new VNode[] {";
-                        jsPostLine.Add("} : [new VNode(\"#comment\", " + index + ").Text(\"x-else\")]),");
+                        csLine.Insert(0, indent + "// x-else\n");
+                        csLine.Insert(1, indent + "(!_ifs" + level + " ? \n");
+                        csLine.Insert(2, "    ");
+                        csPost.Add(indent + ":");
+                        csPost.Add(indent + "    new VNode(\"#comment\", " + index + ").Text(\"<!-- x-else -->\")");
+                        csPost.Add(indent + "),");
+
                     } else if (attr.Name == "x-for") {
                         //...<li x-for="item in state.items" x-key="name">{{item.name + '(' + item.count + ') '}}</li>...
                         var keyName = node.GetAttributeValue("x-key", "");
@@ -165,29 +246,35 @@ namespace XComponents.SourceGenerator {
                             forType = "position";
                         }
                         //creates a comment virtual node that indicates the start of the for loop, and the type of the loop
-                        code.AppendLine(indent + "//x-for\n" + indent + "new VNode(\"#comment\", " + index + ").Option(\"forType\", \"" + forType + "\").Text(\"x-for-start\"),");
+                        code.AppendLine(indent + "// x-for");
+                        code.AppendLine(indent + "new VNode(\"#comment\", " + index + ").Option(\"forType\", \"" + forType + "\").Text(\"<!-- x-for-start -->\"),");
                         //add loop
                         var parts = attr.Value.Replace(" in ","|").Split('|');
                         if (parts.Length != 2) diagnostics.Report(DiagnosticDescriptors.XC1003__HtmlSyntaxError, node, definition.TemplatePath, $"Error compiling template: invalid x-for attribute detected: {attr.Value}");
                         var itemName = parts[0].Trim();
                         var indexName = "index";
+                        var valueName = "value";
                         if (itemName.StartsWith("(") && itemName.EndsWith(")")) {
-                            var arr = itemName.Substring(1, itemName.Length - 1).Split(',');
+                            var arr = itemName.Substring(1, itemName.Length - 2).Split(',');
                             itemName = arr[0].Trim();
                             indexName = arr[1].Trim();
+                            if (arr.Length > 2) valueName = arr[2].Trim();
                         }
                         var listName = parts[1].Trim();
-                        jsLine[0] = indent + ".. XComponents.Converter.ToEnumerable(" + listName + ").Select((" + itemName + ", " + indexName + ") => ";
-                        jsPostLine.Add("");
+                        csLine.Insert(0, indent + ".. XComponents.Converter.Enumerate(" + listName + ", (" + itemName + ", " + indexName + ", " + valueName + ") =>\n");
+                        csLine.Insert(1, "    ");
                         if (!string.IsNullOrEmpty(keyName)) {
-                            jsLine.Add(".Option(\"key\",\"" + itemName + "." + keyName + "\")");
+                            csLine.Add(".Option(\"key\",\"" + itemName + "." + keyName + "\")");
                         }
                         //creates a comment end node that indicates the end of the for loop
-                        jsPost.Add(indent + "new VNode(\"#comment\", " + index + ").Option(\"forType\", \"" + forType + "\").Text(\"x-for-end\"),\n");
-                        jsPost.Add(indent + "// /x-for\n");
+                        csPost.Add(indent + "),");
+                        csPost.Add(indent + "new VNode(\"#comment\", " + index + ").Option(\"forType\", \"" + forType + "\").Text(\"<!-- x-for-end -->\"),");
+                        csPost.Add(indent + "// /x-for");
                         eventVariable = itemName;
+
                     } else if (attr.Name == "x-key") {
                         //used in x-for 
+
                     } else if (attr.Name == "x-show") {
                         //...<span x-show="state.value > 0">greather than 0</span>...
                         // todo....
@@ -211,7 +298,7 @@ namespace XComponents.SourceGenerator {
                         } else if (nodeName == "select") {
                         } else if (nodeName == "textarea") {
                         }
-                        jsLine.Add(".Property(\"" + propertyName + "\"," + propValue + ")");
+                        csLine.Add(".Property(\"" + propertyName + "\"," + propValue + ")");
                         //event
                         var eventName = "change";
                         if (nodeName == "input") {
@@ -233,41 +320,75 @@ namespace XComponents.SourceGenerator {
                         
                     } else if (attr.Name == "x-once") {
                         //x-once: only render once
-                        jsLine[0] = indent + ".. ((__context.renderCount==0) ? [";
-                        jsPostLine.Add("] : [{tag:'" + node.Name.ToLower() + "', once:true}]),");
+                        csLine[0] = indent + ".. ((__context.renderCount==0) ? [";
+                        csPost.Add(indent + "] : [{tag:'" + node.Name.ToLower() + "', once:true}]),");
                     } else if (attr.Name == "x-pre") {
                         //v-pre: skip Childs
-                        jsLine.Add(".Option(\"format\",\"html\")");
+                        csLine.Add(".Option(\"format\",\"html\")");
                         text = Utils.EscapeCsString(node.InnerHtml).Replace("<x:text>", "{{").Replace("</x:text>", "}}");
                     } else if (attr.Name.StartsWith("x-")) {
                         //error
                         diagnostics.Report(DiagnosticDescriptors.XC1004__HtmlInvalidAttribute, attr, definition.TemplatePath, $"Error compiling template: invalid template attribute detected: {attr.Name}");
                     } else {
-                        jsLine.Add(".Attribute(\"" + attr.Name + "\"," + Utils.EscapeCsString(attr.Value) + ")");
+                        csLine.Add(".Attribute(\"" + attr.Name + "\"," + Utils.EscapeCsString(attr.Value) + ")");
                     }
                 }
                 //add event variable
                 if (!string.IsNullOrEmpty(eventVariable)) {
                     eventVariables.Add(eventVariable);
                 }
+                //slots
+                if (node.Name.IndexOf("-")!=-1) {
+                    foreach (var subNode in node.ChildNodes.ToList()) {
+                        if (subNode.Attributes.Contains("slot")) {
+                            var aux = (node.ChildAttributes("x-if").Count() > 0 || node.ChildAttributes("x-elseif").Count() > 0 || node.ChildAttributes("x-else").Count()> 0 || node.ChildAttributes("x-for").Count() > 0 ? 1 : 0);
+                            var slotName = subNode.GetAttributeValue("slot", "");
+                            csLine.Add(".Slot(\"" + slotName + "\", [\n");
+                            code.Append(string.Join("", csLine.ToArray()));
+                            var subSubIndex = 0;
+                            subSubIndex += CreateRenderFunctionRecursive(definition, diagnostics, name, subNode, subSubIndex, code, level + 1 + aux, varDefinitions, eventVariables);
+                            code.Append(indent + (aux > 0 ? "    " : "") + "])");
+                            csLine.Clear();
+                            node.ChildNodes.Remove(subNode);
+                        }
+                    }
+                }
                 //children
                 if (!string.IsNullOrEmpty(text)) {
-                    jsLine.Add(".Text(" + text + ")");
-                    jsLine.Add(", " + (jsPostLine.Count > 0 ? String.Join("", jsPostLine) : ""));
-                    code.Append(string.Join("", jsLine.ToArray()));
-                } else if (node.ChildNodes.Count > 0 || !string.IsNullOrEmpty(node.GetAttributeValue("x-for", ""))) {
-                    jsLine.Add(".Children([\n");
-                    code.Append(string.Join("", jsLine.ToArray()));
+                    csLine.Add(".Text(" + text + "),");
+                    code.Append(string.Join("", csLine.ToArray()));
+                } else if (node.ChildAttributes("x-if").Count() > 0 || node.ChildAttributes("x-elseif").Count() > 0 || node.ChildAttributes("x-else").Count() > 0) {
+                    csLine.Add(".Children([\n");
+                    code.Append(string.Join("", csLine.ToArray()));
                     var subIndex = 0;
-                    foreach(var subNode in node.ChildNodes) {
+                    foreach (var subNode in node.ChildNodes) {
+                        subIndex += CreateRenderFunctionRecursive(definition, diagnostics, name, subNode, subIndex, code, level + 2, varDefinitions, eventVariables);
+                    }
+                    code.AppendLine(indent + "    ])");
+                } else if (node.ChildAttributes("x-for").Count() > 0) {
+                    csLine.Add(".Children([\n");
+                    code.Append(string.Join("", csLine.ToArray()));
+                    var subIndex = 0;
+                    foreach (var subNode in node.ChildNodes) {
+                        subIndex += CreateRenderFunctionRecursive(definition, diagnostics, name, subNode, subIndex, code, level + 2, varDefinitions, eventVariables);
+                    }
+                    code.AppendLine(indent + "    ])");
+                } else if (node.ChildNodes.Count > 0) {
+                    csLine.Add(".Children([\n");
+                    code.Append(string.Join("", csLine.ToArray()));
+                    var subIndex = 0;
+                    foreach (var subNode in node.ChildNodes) {
                         subIndex += CreateRenderFunctionRecursive(definition, diagnostics, name, subNode, subIndex, code, level + 1, varDefinitions, eventVariables);
                     }
-                    code.AppendLine(indent + "])" + (!string.IsNullOrEmpty(node.GetAttributeValue("x-for","")) ? ")" : "")+ "," + (jsPostLine.Count > 0 ? String.Join("", jsPostLine) : ""));
+                    code.AppendLine(indent + "]),");
                 } else {
-                    jsLine.Add("," + (jsPostLine.Count > 0 ? String.Join("", jsPostLine) : "") + "\n");
-                    code.Append(string.Join("", jsLine.ToArray()));
+                    csLine.Add(",");
+                    code.AppendLine(string.Join("", csLine.ToArray()));
                 }
-                if (jsPost.Count > 0) code.Append(string.Join("", jsPost.ToArray()));
+                //post
+                foreach (var postLine in csPost) {
+                    code.AppendLine(postLine);
+                }
                 //remove event variable
                 if (!string.IsNullOrEmpty(eventVariable)) {
                     eventVariables.RemoveAt(eventVariables.Count - 1);
@@ -280,10 +401,7 @@ namespace XComponents.SourceGenerator {
 
     } 
 
-
 }
 
-
-// filters: state.Value | capitalize | uppercase ...
 
 

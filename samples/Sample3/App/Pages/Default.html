@@ -1,10 +1,23 @@
+Hello <b>world</b>
 
-<a href="#" onclick="return window.XComponents.rpc('/', 'DoSomethingAsync', [1,2]);">aaaaa</a>
+<div slot="header">
+    this goes to head 1
+</div>
+<div slot="header">
+    this goes to head 2
+</div>
+<template slot="header">
+    this goes to head 3
+</template>
 
-<a href="#" onclick="return window.XComponents.rpc('/', 'x-counter:DoSomething2Async', [1,2]);">bbbb</a>
+Lorem ipsum dolor sit amet, consectetur adipiscing elit. Nullam nec nisl nec nisl tincidunt. 123
 
-<hr />
-
-<x-counter-2 value="123"></x-counter-2>
-
-
+<x-button x-for="indexx in 2" label="Click me" color="red">
+    <div slot="advanced">
+        this is advanced  ddddddddddd 1 ({{indexx}})
+    </div>
+    tontoreias
+    <div slot="advanced">
+        this is advanced  ddddddddddd 2
+    </div>
+</x-button>

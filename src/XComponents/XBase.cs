@@ -3,9 +3,14 @@ namespace XComponents {
 
 
     public abstract class XBase {
+        
+        // Vars
+        public XBase? Parent { get; private set; }
 
         // Init methods
-        public virtual void OnInit(XContext context) {}
+        public virtual void OnInit(XContext context, XBase? parent) {
+            Parent = parent;
+        }
 
         // Load methods
         public virtual void OnLoad(XContext context) { }
@@ -13,19 +18,7 @@ namespace XComponents {
             OnLoad(context);
             return Task.CompletedTask;
         }
-
-        //// Get/Post methods
-        //public virtual void OnGet(XContext context) { }
-        //public virtual Task OnGetAsync(XContext context) {
-        //    OnGet(context);
-        //    return Task.CompletedTask;
-        //}
-        //public virtual void OnPost(XContext context) { }
-        //public virtual Task OnPostAsync(XContext context) {
-        //    OnPost(context);
-        //    return Task.CompletedTask;
-        //}
-
+         
         // RPC methods 
         public virtual Task<object?> OnRpcAsync(XContext context, string method, object[] parameters) {
             return Task.FromResult<object?>(null);
@@ -37,15 +30,21 @@ namespace XComponents {
         public virtual bool SetFromRoute(string name, string value) => false;
         public virtual bool SetFromHeader(string name, string value) => false;
         public virtual bool SetFromQuery(string name, string value) => false;
-        public virtual bool SetFromSlot(string name, Func<XContext, Task> handler) => false;
 
         // Render methods
-        public virtual Task RenderAsync(string slot, XContext context) {
-            return Task.CompletedTask;
+        protected virtual VNode[]? RenderVNodes(string slot, XContext context) {
+            return [];
+        }
+        public virtual async Task<bool> RenderAsync(string slot, XContext context, Func<string, XContext, Task<bool>> renderSlotCallback) {
+            var vNodes = RenderVNodes(slot, context); 
+            if (vNodes == null) return false;
+            foreach (var vNode in vNodes) {
+                await vNode.RenderAsync(context, this, renderSlotCallback);
+            }
+            return true;
         }
         
     }
-
 
 }
 

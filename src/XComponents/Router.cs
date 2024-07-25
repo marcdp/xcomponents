@@ -26,7 +26,7 @@ namespace XComponents {
             foreach (var route in mRoutes) {
                 if (route.Pattern == null && route.Url.Equals(path, StringComparison.InvariantCultureIgnoreCase)) {
                     var page = mServices.GetRequiredKeyedService<XPage>(route.ComponentName);
-                    page.OnInit(context);
+                    page.OnInit(context, null);
                     return page;
                 }
             }

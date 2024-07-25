@@ -9,6 +9,7 @@ namespace Sample3 {
 
     public class Program {
 
+       
         public static async Task Main(string[] args) {
 
             // Create the builder
@@ -64,8 +65,22 @@ namespace Sample3 {
 //x - XComponents -> normal script
 
 
+//x SSR slot inheritance
+// HotReload --> reload page
+// Streaming
 
 
+
+
+
+
+
+
+
+
+// - partial/includes that not includes wrapper
+// - partial/includes that includes wrapper
+// - webcompoennt way
 
 // XWebComponent -->  put before and after {{state.Value}}
 

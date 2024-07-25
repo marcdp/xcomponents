@@ -4,7 +4,22 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
 
 
+[assembly: System.Reflection.Metadata.MetadataUpdateHandler(typeof(XComponents.Middlewares.HotReloadService))]
+
+
 namespace XComponents.Middlewares {
+
+
+    public static class HotReloadService {
+        //#pragma warning disable CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+        public static event Action<Type[]?>? UpdateApplicationEvent;
+        //#pragma warning restore CS8632 // The annotation for nullable reference types should only be used in code within a '#nullable' annotations context.
+        internal static void ClearCache(Type[]? types) { }
+        internal static void UpdateApplication(Type[]? types) {
+            UpdateApplicationEvent?.Invoke(types);
+        }
+    }
+
 
     public class XRenderMiddleware(RequestDelegate next, Configuration configuration, IServiceProvider services, Router router, ILogger<XRenderMiddleware> logger)  {
  
@@ -40,14 +55,18 @@ namespace XComponents.Middlewares {
                 return;
             }
 
-            // OnInit
-            page.OnInit(context);
-            
-            // OnLoad
-            await page.OnLoadAsync(context);
-
             // Render page
-            await page.RenderPageAsync(context);
+            var layoutName = context.Configuration.LayoutDefault;
+            var layout = context.Services.GetKeyedService<XLayout>(layoutName);
+            if (layout == null) throw new Exception($"XLayout not found: {layoutName}");
+            layout.OnInit(context, page);
+            page.OnInit(context, null);
+            await page.OnLoadAsync(context);
+            await layout.RenderAsync("", context, async (slotName, XContext) => {
+                return await page.RenderAsync(slotName, context, (slot, context) => {
+                    return Task.FromResult(false);
+                });
+            });
             var html = textWriter.ToString();
 
             // Inject PreHtml

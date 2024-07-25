@@ -16,10 +16,28 @@ namespace XComponents.SourceGenerator {
         private readonly string[] HTML_SELFCLOSING_TAGS = ["area", "base", "br", "col", "embed", "hr", "img", "input", "link", "meta", "param", "source", "track", "wbr", "", ""];
 
         // Methods
-        public void CreateRenderFunction(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, StringBuilder code, HtmlNodeCollection nodes, int level, ref int sequence) {
-            CreateRenderFunctionRecursive(definition, diagnostics, code, nodes, level, ref sequence);
+        public string CreateRenderServer(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, HtmlDocument document) {
+            var code = new StringBuilder();
+            var sequence = 0;
+            code.AppendLine($"        #pragma warning disable");
+            code.AppendLine($"        internal class Renderer {{"); 
+            code.AppendLine($"            #pragma warning disable");
+            code.AppendLine($"            internal async Task RenderAsync({definition.Name} __component, string __slot, State state, XContext __context) {{");
+            document.DocumentNode.ChildNodes.Where(x => x.Attributes.Contains("slot")).ToList().ForEach(node => {
+                var slotName = node.GetAttributeValue("slot", "");
+                code.AppendLine($"                if (__slot.Equals(\"{slotName}\", System.StringComparison.OrdinalIgnoreCase)) {{");
+                CreateRenderServerRecursive(definition, diagnostics, code, node.ChildNodes, 1, ref sequence);
+                code.AppendLine($"                }}");
+                document.DocumentNode.ChildNodes.Remove(node);
+            });
+            code.AppendLine($"                if (__slot.Equals(\"\")) {{");
+            CreateRenderServerRecursive(definition, diagnostics, code, document.DocumentNode.ChildNodes, 1, ref sequence);
+            code.AppendLine($"                }}");
+            code.AppendLine($"            }}");
+            code.AppendLine($"        }}");
+            return code.ToString();
         }
-        public void CreateRenderFunctionRecursive(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, StringBuilder code, HtmlNodeCollection nodes, int level, ref int sequence) {
+        public void CreateRenderServerRecursive(SourceGenerator.Definition definition, SourceGenerator.Diagnostics diagnostics, StringBuilder code, HtmlNodeCollection nodes, int level, ref int sequence) {
             var baseLevel = 4;
             var indent = new String(' ', (level + baseLevel) * 4);
             var ifName = "";
@@ -278,7 +296,7 @@ namespace XComponents.SourceGenerator {
                                 // ...<* slot="header">...
                                 var slotName = childNode.GetAttributeValue("slot", "");
                                 code.AppendLine($"{indent}if (!{compName}.SetFromSlot({Utils.EscapeCsString(slotName)}, async (__context) => {{");
-                                CreateRenderFunctionRecursive(definition, diagnostics, code, childNode.ChildNodes, level + 1, ref sequence);
+                                CreateRenderServerRecursive(definition, diagnostics, code, childNode.ChildNodes, level + 1, ref sequence);
                                 code.AppendLine($"{indent}}})) __context.Logger.LogWarning(\"Unable to set slot: {node.Name} has no slot named: {slotName}\");");
                                 node.ChildNodes.Remove(childNode);
                             }
@@ -286,7 +304,7 @@ namespace XComponents.SourceGenerator {
                         // set default slot
                         if (node.ChildNodes.Count > 0) {
                             code.AppendLine($"{indent}if (!{compName}.SetFromSlot(\"\", async (__context) => {{");
-                            CreateRenderFunctionRecursive(definition, diagnostics, code, node.ChildNodes, level + 1, ref sequence);
+                            CreateRenderServerRecursive(definition, diagnostics, code, node.ChildNodes, level + 1, ref sequence);
                             code.AppendLine($"{indent}}})) __context.Logger.LogWarning(\"Unable to set slot: {node.Name} has no default slot\");");
                         }
                         // get
@@ -303,7 +321,7 @@ namespace XComponents.SourceGenerator {
                             // open element
                             code.AppendLine($"{indent}__context.Write(\"<{node.Name}>\");");
                             // children
-                            CreateRenderFunctionRecursive(definition, diagnostics, code, node.ChildNodes, level, ref sequence);
+                            CreateRenderServerRecursive(definition, diagnostics, code, node.ChildNodes, level, ref sequence);
                             // node end
                             code.AppendLine($"{indent}__context.Write(\"</{node.Name}>\");");
                         }
@@ -354,7 +372,7 @@ namespace XComponents.SourceGenerator {
                             if (node.Attributes.Contains("x-pre")) {
                                 code.AppendLine($"{indent}__context.Write({Utils.EscapeCsString(node.InnerHtml)});");
                             } else {
-                                CreateRenderFunctionRecursive(definition, diagnostics, code, node.ChildNodes, level, ref sequence);
+                                CreateRenderServerRecursive(definition, diagnostics, code, node.ChildNodes, level, ref sequence);
                             }
 
                             // node end

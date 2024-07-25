@@ -18,7 +18,7 @@ namespace XComponents.Middlewares {
                 var name = remaining.Value.Substring(1);
                 var component = services.GetKeyedService<XComponent>(name);
                 if (component is XWebComponent webComponent) {
-                    var js = webComponent.GetWebComponentJavaScript();
+                    var js = webComponent.RenderJsWebComponent();
                     httpContext.Response.ContentType = "text/javascript";
                     await httpContext.Response.WriteAsync(js);
                     return;

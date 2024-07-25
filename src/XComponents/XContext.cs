@@ -33,6 +33,7 @@ namespace XComponents {
         public string GetFreeElementId() {
             return "__element" + (++mId);
         }
+        
 
         // writers
         public void Write(string? text) {

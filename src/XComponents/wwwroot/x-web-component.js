@@ -35,6 +35,50 @@ const config = {
     preload:[]
 }
 
+/*
+ * VNode
+ */
+class VNode {
+    tag = "";
+    index = 0;
+    attrs = null;
+    props = null;
+    events = null; 
+    options = null;
+    children = null;
+    constructor(tag, index) {
+        this.tag = tag;
+        this.index = index;
+    }
+    Attribute(name, value) {
+        if (this.attrs == null) this.attrs = {}
+        this.attrs[name] = value;
+        return this;
+    }
+    Property(name, value) {
+        if (this.props == null) this.props = {}
+        this.props[name] = value;
+        return this;
+    }
+    Event(name, ...value) {
+        if (this.events == null) this.events = {}
+        this.events[name] = value;
+        return this;
+    }
+    Option(name, value) {
+        if (this.options == null) this.options = {}
+        this.options[name] = value;
+        return this;
+    }
+    Text(text) {
+        this.children = text;
+        return this;
+    }
+    Children(children) {
+        this.children = children;
+        return this;
+    }
+}
 
 /*
  * Context
@@ -44,34 +88,30 @@ class Context {
     constructor(renderCount) {
         this.renderCount = renderCount;
     }
-    toArray = (value) => {
-        if (Array.isArray(value)) return value;
-        if (typeof (value) == "number") return Array.from({ length: value }, (v, i) => i + 1);
-        if (typeof (value) == "string") return [...value];
-        if (typeof (value) == "object") return Object.keys(value);
-        return value;
+    vNode(tag, index) {
+        return new VNode(tag, index);
     }
-    toObject = (value) => {
-        let result = {};
-        for (let key in value) {
-            let val = value[key];
-            if (typeof (val) == "string") {
-                result[key] = val;
-            } else if (typeof (val) == "number") {
-                result[key] = val;
-            } else if (typeof (val) == "boolean") {
-                if (val) result[key] = true;
+    enumerate(value, handler) {
+        var result = [];
+        if (Array.isArray(value)) {
+            for (let i = 0; i < value.length; i++) {
+                result.push(handler(value[i], i));
             }
+        } else if (typeof (value) == "number") {
+            for (let i = 1; i <= value; i++) {
+                result.push(handler(i, i-1));
+            }
+        } else if (typeof (value) == "string") {
+            for (let i = 0; i < value.length; i++) {
+                result.push(handler(value[i], i));
+            }
+        } else if (typeof (value) == "object") {
+            debugger;
         }
         return result;
     }
-    toDynamicArgument = (key, value) => {
-        return { [key]: value };
-    }
-    toDynamicProperty = (key, value) => {
-        return { [key]: value };
-    }
 }
+
 
 
 /*
@@ -153,7 +193,6 @@ class XWebComponent extends HTMLElement {
     }
     connectedCallback() {
         this._connected = true;
-
         this._renderDom();
         if (this.onLoad && !this._loadCalled) {
             this._loaded = true;
@@ -236,7 +275,8 @@ class XWebComponent extends HTMLElement {
             this._renderDomTimeoutId = 0;
         };
         //render
-        var vdom = this.render(this._state, new Context(this._renderCount++));
+        var context = new Context(this._renderCount++);
+        var vdom = this.render(context, this._state);
         //vdom to dom
         if (this._vdom == null) {
             this._diffDom([], vdom, this._shadowRoot);
@@ -246,7 +286,7 @@ class XWebComponent extends HTMLElement {
         this._vdom = vdom;
         //log
         const end = performance.now();
-        //logger.log(`Rendered ${this.localName}, in ${end-start} ms`);
+        logger.log(`Rendered ${this.localName}, in ${end-start} ms`);
     }
     _createDomElement(vNode) {
         //create element from vdom node
@@ -330,7 +370,7 @@ class XWebComponent extends HTMLElement {
                     el.textContent = vNode.children;
                 }
             }
-            //if (config.debug) el.setAttribute("x-index", vNode.index);
+            if (config.debug) el.setAttribute("x-index", vNode.index);
             return el;
         }
     }
@@ -358,27 +398,10 @@ class XWebComponent extends HTMLElement {
                 }
                 let element = this._createDomElement(vNodeNew);
                 parent.appendChild(element);
-            } else if (vNodeNew == null) {
-                //remove
-                parent.removeChild(parent.lastChild);
-                throw new DOMException("Not implemented");
-            } else if (vNodeOld.index < vNodeNew.index) {
-                //remove old node
-                //debugger;
-                //let elementNew = document.createComment("");
-                //let elementOld = parent.childNodes[vNodeOld.index + incs];
-                //parent.replaceChild(elementNew, elementOld)
-                //inew--;
-                throw new DOMException("Not implemented");
-            } else if (vNodeOld.index > vNodeNew.index) {
-                //replace node
-                //debugger;
-                //let elementNew = this._createDomElement(vNodeNew);
-                //let elementOld = parent.childNodes[vNodeNew.index + incs];
-                //parent.replaceChild(elementNew, elementOld);
-                //iold--;
-                throw new DOMException("Not implemented");
-            } else if (vNodeOld.tag == "#comment" && vNodeOld.forType == "key" && vNodeNew.tag == "#comment" && vNodeNew.forType == "key") {
+            } else if (vNodeOld.index != vNodeNew.index) {
+                //invalid state
+                throw new DOMException("Unable to render: invalid virtual DOM status: different index");
+            } else if (vNodeOld.tag == "#comment" && vNodeOld.options && vNodeOld.options.forType == "key" && vNodeNew.tag == "#comment" && vNodeNew.options && vNodeNew.options.forType == "key") {
                 //for loop by key
                 var oldStartIndex = i + iold;
                 var oldEndIndex = oldStartIndex;
@@ -389,7 +412,7 @@ class XWebComponent extends HTMLElement {
                 this._diffDomListByKey(vNodesOld, oldStartIndex, oldEndIndex, vNodesNew, newStartIndex, newEndIndex, parent);
                 iold += oldEndIndex - oldStartIndex;
                 inew += newEndIndex - newStartIndex;
-            } else if (vNodeOld.tag == "#comment" && vNodeOld.forType == "position" && vNodeNew.tag == "#comment" && vNodeNew.forType == "position") {
+            } else if (vNodeOld.tag == "#comment" && vNodeOld.options && vNodeOld.options.forType == "position" && vNodeNew.tag == "#comment" && vNodeNew.options && vNodeNew.options.forType == "position") {
                 //for loop by position
                 var oldStartIndex = i + iold;
                 var oldEndIndex = oldStartIndex;
@@ -411,12 +434,7 @@ class XWebComponent extends HTMLElement {
             } else {
                 //diff node
                 let child = parent.childNodes[vNodeNew.index + incs];
-                //let child = parent.childNodes[i + inew];
-                try {
-                    this._diffDomElement(vNodeOld, vNodeNew, child);
-                } catch (e) {
-                    debugger;
-                }
+                this._diffDomElement(vNodeOld, vNodeNew, child);
             }
         }
     }

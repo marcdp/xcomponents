@@ -1,4 +1,5 @@
-﻿using System.Text.Json; 
+﻿using System.IO.Pipelines;
+using System.Text.Json; 
 
 namespace XComponents {
 
@@ -28,35 +29,70 @@ namespace XComponents {
         }
 
         // enumerable
-        public static (T, int, T)[] ToEnumerable<T>(IEnumerable<T> value) {
-            var result = new List<(T, int, T)>();
-            foreach (var item in value) {
-                result.Add((item, result.Count, item));
-            }
-            return result.ToArray();
-        }
-        public static (int, int, int)[] ToEnumerable(int value) {
-            var result = new (int, int, int)[value];
-            for (int i = 1; i <= value; i++) {
-                result[i - 1] = (i, i - 1, i);
+        //public static (T, int, T)[] ToEnumerable<T>(IEnumerable<T> value) {
+        //    var result = new List<(T, int, T)>();
+        //    foreach (var item in value) {
+        //        result.Add((item, result.Count, item));
+        //    }
+        //    return result.ToArray();
+        //}
+        //public static (int, int, int)[] ToEnumerable(int value) {
+        //    var result = new (int, int, int)[value];
+        //    for (int i = 1; i <= value; i++) {
+        //        result[i - 1] = (i, i - 1, i);
+        //    }
+        //    return result;
+        //}
+        //public static (string, int, object?)[] ToEnumerable(IDictionary<string, object> aObject) {
+        //    var result = new List<(string, int, object?)>();
+        //    foreach (var key in aObject.Keys) {
+        //        result.Add((key.ToString()!, result.Count, aObject[key]));
+        //    }
+        //    return result.ToArray();
+        //}
+        //public static (string, int, object?)[] ToEnumerable(object aObject) {
+        //    var result = new List<(string, int, object?)>();
+        //    var type = aObject.GetType();
+        //    foreach (var propertyInfo in type.GetProperties()) {
+        //        var propertyValue = (propertyInfo.CanRead ? propertyInfo.GetValue(aObject) : null);
+        //        result.Add((propertyInfo.Name, result.Count, propertyValue));
+        //    }
+        //    return result.ToArray();
+        //}
+
+
+        public static IEnumerable<VNode> Enumerate<T>(IEnumerable<T> enumeration, Func<T, int, object?, VNode> handler) {
+            var index = 0;
+            var result = new List<VNode>();
+            foreach (var item in enumeration) {
+                result.Add(handler(item, index++, item));
             }
             return result;
         }
-        public static (string, int, object?)[] ToEnumerable(IDictionary<string, object> aObject) {
-            var result = new List<(string, int, object?)>();
-            foreach (var key in aObject.Keys) {
-                result.Add((key.ToString()!, result.Count, aObject[key]));
+        public static IEnumerable<VNode> Enumerate(int value, Func<int, int, object?, VNode> handler) {
+            var index = 0;
+            var result = new List<VNode>();
+            for (int i = 1; i <= value; i++) {
+                result.Add(handler(i, index++, i));
             }
-            return result.ToArray();
+            return result;            
         }
-        public static (string, int, object?)[] ToEnumerable(object aObject) {
-            var result = new List<(string, int, object?)>();
-            var type = aObject.GetType();
-            foreach (var propertyInfo in type.GetProperties()) {
-                var propertyValue = (propertyInfo.CanRead ? propertyInfo.GetValue(aObject) : null);
-                result.Add((propertyInfo.Name, result.Count, propertyValue));
+        public static IEnumerable<VNode> Enumerate(string value, Func<string, int, object?, VNode> handler) {
+            var index = 0;
+            var result = new List<VNode>();
+            foreach (var c in value) {
+                result.Add(handler(c.ToString(), index++, c));
             }
-            return result.ToArray();
+            return result;
+        }
+        public static IEnumerable<VNode> Enumerate(object enumeration, Func<string, int, object?, VNode> handler) {
+            var index = 0;
+            var result = new List<VNode>();
+            foreach(var propertyInfo in enumeration.GetType().GetProperties()) {
+                var value = propertyInfo.GetValue(enumeration);
+                result.Add(handler(propertyInfo.Name, index++, value));
+            }
+            return result;
         }
 
         // boolean

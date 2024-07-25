@@ -1,14 +1,22 @@
 <b></b>
 
+<x-date title="Lorem ipsum"></x-date>
+
+<li x-for="key in state.Persona">
+    {{key}}
+</li>
+
+<span x-for="letter in state.Word">{{letter}}</span>
+
 <li x-for="item in state.Items">a</li>
 
 <div x-if="state.Value > 125 && state.Value < 130">
     is greather than X
 </div>
-<div x-elseif="state.Value > 135">
+<div x-elseif="state.Value > 135" style="color:red;">
     is less than X
 </div>
-<div x-else style="color:red">
+<div x-else>
     is X !!!!!!!!!!!!!
 </div>                                                        
 
@@ -17,15 +25,13 @@
 <ul>
     <li x-for="itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm in state.Items">
         value is:
-        <a @click="test">{{itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm}}</a>.
-        <span x-for="i in 10">
-            <a @click="test">{{i}}</a>.
-        </span>
+        <a @click="test">{{itemmmmmmmmmmmmmmmmmmmmmmmmmmmmmmm.name}}</a>.
+        (<span x-for="i in 10"><a @click="test">{{i}}</a>.</span>)
         <button x-on:click="decrement">Dec</button>
     </li>
 </ul>
 
-<button x-on:click="increment">Inc</button>
+<button x-on:click="increment">Inc</button>                                                          
 
 <script type="module">
     import XWebComponent from "x-web-component";
@@ -36,20 +42,22 @@
 
         constructor() {
             super({
+                Word: "my world",
                 Value: 125,
+                Person: {name:"pepe",surname:"lucas"},
                 Items: [{ name: "hello" }, { name: "world1" }, { name: "world2" }, { name: "world3" }, { name: "world4" }, { name: "world5" }, { name: "world6" }]
             });
         }
         connectedCallback() {
             super.connectedCallback();
         }
-        decrement() {
+        decrement(event, item) {
             this.state.Value--;
         }
         increment() {
             this.state.Value++;
         }
-        test(event, item, i) {
+        test(event, i, item) {
             debugger;
         }
     });

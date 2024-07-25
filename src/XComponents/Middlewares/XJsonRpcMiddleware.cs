@@ -37,7 +37,7 @@ namespace XComponents.Middlewares {
                             jsonRpcRequest.Method = jsonRpcRequest.Method.Substring(jsonRpcRequest.Method.IndexOf(":") + 1);
                             target = services.GetKeyedService<XComponent>(componentName)!;
                             if (target != null) {
-                                target.OnInit(context);
+                                target.OnInit(context, null);
                                 target.OnLoad(context);
                             }
                         }

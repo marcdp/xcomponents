@@ -12,12 +12,7 @@ namespace XComponents.Components {
 
         
         // Render methods
-        public override bool SetFromSlot(string name, Func<XContext, Task> handler) {
-            if (name.Equals("")) { mSlot = handler; return true; }
-            if (name.Equals("fallback")) { mSlotFallback = handler; return true; }
-            return false;
-        }
-        public override async Task RenderAsync(string slot, XContext context) {
+        public override async Task<bool> RenderAsync(string slot, XContext context, Func<string, XContext, Task<bool>> renderSlotCallback) {
             var elementId = context.GetFreeElementId();
             if (context.Configuration.RenderStreaming) {
                 // Render streaming
@@ -47,6 +42,7 @@ namespace XComponents.Components {
                     await mSlot(context);
                 }
             }
+            return true;
         }
 
     }
